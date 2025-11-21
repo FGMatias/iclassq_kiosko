@@ -23,13 +23,13 @@ public class LoginView extends StackPane {
 
     private void init() {
         HBox container = new HBox(0);
-        container.setPadding(new Insets(25));
+//        container.setPadding(new Insets(25));
         container.getStyleClass().add(Styles.BG_ACCENT_EMPHASIS);
 
         VBox leftPanel = createLeftPanel();
         VBox rightPanel = createRightPanel();
 
-        leftPanel.prefWidthProperty().bind(container.widthProperty().divide(2));
+        leftPanel.prefWidthProperty().bind(container.widthProperty().divide(1.5));
         rightPanel.prefWidthProperty().bind(container.widthProperty().divide(2));
 
         leftPanel.prefHeightProperty().bind(container.heightProperty());
@@ -47,7 +47,7 @@ public class LoginView extends StackPane {
 
         ImageView illustration = new ImageView();
         try {
-            illustration.setImage(new Image(getClass().getResourceAsStream("/images/login.svg")));
+            illustration.setImage(new Image(getClass().getResourceAsStream("images/login.png")));
             illustration.setPreserveRatio(true);
             // La imagen ocupará máximo el 60% del alto del panel
             illustration.fitHeightProperty().bind(leftPanel.heightProperty().multiply(0.6));
@@ -82,7 +82,7 @@ public class LoginView extends StackPane {
         rightPanel.setPadding(new Insets(60));
         rightPanel.setStyle(
                 "-fx-background-color: -color-light; " +
-                        "-fx-background-radius: 10;"
+                "-fx-background-radius: 50;"
         );
 
         Label titleLabel = new Label("Ingrese sus credenciales para iniciar sesión");
@@ -167,7 +167,19 @@ public class LoginView extends StackPane {
         );
 
         return rightPanel;
-|               }
+    }
+
+    private VBox formLogin() {
+        VBox container = new VBox(20);
+        container.setAlignment(Pos.CENTER_LEFT);
+        container.setMaxWidth(400);
+
+        Label titleLabel = new Label("Ingrese sus credenciales para iniciar sesión");
+        titleLabel.setStyle("-fx-font-size: 18px; -fx-text-fill: #4B5563; -fx-font-weight: 500;");
+        titleLabel.setWrapText(true);
+        titleLabel.setMaxWidth(400);
+        titleLabel.setAlignment(Pos.CENTER);
+    }
 
     public TextField getUsername() {
         return username;
