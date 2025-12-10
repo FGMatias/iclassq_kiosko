@@ -6,8 +6,6 @@ import javafx.scene.Scene;
 import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 import org.iclassq.util.Fonts;
-import org.iclassq.view.GruposView;
-import org.iclassq.view.LoginView;
 import org.iclassq.view.TecladoView;
 
 public class KioskoApplication extends Application {
