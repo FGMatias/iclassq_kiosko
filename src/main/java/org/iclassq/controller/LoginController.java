@@ -5,9 +5,11 @@ import javafx.scene.control.Alert;
 import org.iclassq.config.ServiceFactory;
 import org.iclassq.model.dto.request.LoginRequestDTO;
 import org.iclassq.model.dto.response.LoginResponseDTO;
+import org.iclassq.navigation.Navigator;
 import org.iclassq.service.AuthService;
 import org.iclassq.util.Constants;
 import org.iclassq.view.LoginView;
+import org.iclassq.view.TecladoView;
 
 public class LoginController {
     private final LoginView view;
@@ -38,7 +40,9 @@ public class LoginController {
                     view.getBtnLogin().setDisable(false);
 
                     if (response.isSuccess()) {
-
+                        Navigator.navigateToKeyboard();
+                    } else {
+                        showError(response.getMessage());
                     }
                 });
             } catch (Exception e) {
@@ -48,7 +52,7 @@ public class LoginController {
                     showError("Error de conexión: " + e.getMessage());
                 });
             }
-        })
+        }).start();
     }
 
     private void showError(String message) {

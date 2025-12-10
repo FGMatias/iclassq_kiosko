@@ -5,6 +5,10 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
+import org.iclassq.config.AppConfig;
+import org.iclassq.config.ServiceFactory;
+import org.iclassq.navigation.Navigator;
+import org.iclassq.util.Constants;
 import org.iclassq.util.Fonts;
 import org.iclassq.view.TecladoView;
 
@@ -15,14 +19,17 @@ public class KioskoApplication extends Application {
         Fonts.loadFonts();
         Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
 
-        TecladoView view = new TecladoView();
-        Scene scene = new Scene(view);
+        ServiceFactory.init(AppConfig.getBackendUrl());
 
-        stage.setTitle("Kiosko");
-        stage.setScene(scene);
+        Navigator.init(stage);
+
+        stage.setTitle(Constants.APP_TITLE);
         stage.setFullScreen(true);
         stage.setFullScreenExitHint("");
         stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+
+        Navigator.navigateToLogin();
+
         stage.show();
     }
 
