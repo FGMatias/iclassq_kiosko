@@ -9,24 +9,12 @@ import org.iclassq.model.dto.response.TipoDocumentoDTO;
 import org.iclassq.service.TipoDocumentoService;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-public class TipoDocumentoServiceImpl implements TipoDocumentoService {
-    private final String baseUrl;
-    private final OkHttpClient client;
-    private final Gson gson;
+public class TipoDocumentoServiceImpl extends BaseService implements TipoDocumentoService {
 
     public TipoDocumentoServiceImpl(String baseUrl, CookieJar cookieJar) {
-        this.baseUrl = baseUrl;
-        this.gson = new Gson();
-
-        this.client = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .cookieJar(cookieJar)
-                .build();
+        super(baseUrl, cookieJar);
     }
 
     @Override
@@ -39,12 +27,7 @@ public class TipoDocumentoServiceImpl implements TipoDocumentoService {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            if (response.isSuccessful()) {
-                String json = response.body().string();
-                TipoDocumentoDTO[] tipos = gson.fromJson(json, TipoDocumentoDTO[].class);
-                return Arrays.asList(tipos);
-            }
-            throw new IOException("Error al obtener los tipos de documento: " + response.code());
+            return parseDataList(response, TipoDocumentoDTO.class);
         }
     }
 }

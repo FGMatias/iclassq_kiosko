@@ -35,11 +35,6 @@ public class LoginController {
         new Thread(() -> {
             try {
                 LoginRequestDTO request = new LoginRequestDTO(username, password, Constants.ROL_KIOSKO);
-                System.out.println("=== DEBUG LOGIN ===");
-                System.out.println("Username: " + username);
-                System.out.println("Password: " + password);
-                System.out.println("Rol: " + Constants.ROL_KIOSKO);
-                System.out.println("==================");
                 LoginResponseDTO response = authService.login(request);
 
                 Platform.runLater(() -> {

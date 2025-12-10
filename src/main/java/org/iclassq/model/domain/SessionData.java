@@ -17,6 +17,7 @@ public class SessionData {
     private boolean autenticado;
     private Integer kioskId;
     private Integer tipoDocumento;
+    private String tipoDocumentoDescripcion;
     private String numeroDocumento;
     private GrupoDTO grupo;
     private SubGrupoDTO subgrupo;
@@ -42,6 +43,7 @@ public class SessionData {
     public boolean puedeGenerarTicket() {
         return numeroDocumento != null &&
                 !numeroDocumento.isEmpty() &&
+                tipoDocumento != null &&
                 grupo != null &&
                 subgrupo != null;
     }

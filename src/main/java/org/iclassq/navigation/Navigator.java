@@ -4,6 +4,7 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import org.iclassq.controller.GruposController;
@@ -20,7 +21,8 @@ import java.util.Stack;
 
 public class Navigator {
     private static Stage primaryStage;
-    private static Stack<Scene> history = new Stack<>();
+    private static Scene mainScene;
+    private static Stack<Parent> history = new Stack<>();
 
     public static void init(Stage stage) {
         primaryStage = stage;
@@ -35,19 +37,24 @@ public class Navigator {
     }
 
     private static void changeScene(Parent view) {
-        StackPane root = new StackPane(view);
-        root.setPadding(Insets.EMPTY);
-        Scene scene = new Scene(root);
-        history.push(scene);
-        primaryStage.setScene(scene);
+        if (mainScene == null) {
+            mainScene = new Scene(view);
+            primaryStage.setScene(mainScene);
+        } else {
+            mainScene.setRoot(view);
+        }
+        history.push(view);
     }
 
     public static void navigateBack() {
         Platform.runLater(() -> {
             if (history.size() > 1) {
                 history.pop();
-                Scene prevScene = history.peek();
-                primaryStage.setScene(prevScene);
+                Parent prevView = history.peek();
+
+                if (mainScene != null) {
+                    mainScene.setRoot(prevView);
+                }
             }
         });
     }

@@ -24,9 +24,7 @@ public class TecladoView extends StackPane {
 
     private void init() {
         HBox container = new HBox(0);
-        container.getStyleClass().add(Styles.BG_DEFAULT);
-        container.prefWidthProperty().bind(this.widthProperty());
-        container.prefHeightProperty().bind(this.heightProperty());
+        container.setPadding(new Insets(25));
 
         VBox leftPanel = createLeftPanel();
         VBox rightPanel = createRightPanel();
@@ -68,8 +66,6 @@ public class TecladoView extends StackPane {
         typeDocLabel.setFont(Fonts.medium(20));
 
         typeDocument = new ComboBox<>();
-        typeDocument.getItems().addAll("DNI", "Carnet de Extranjería", "RUC", "Pasaporte");
-        typeDocument.setValue("DNI");
         typeDocument.setPrefHeight(60);
         typeDocument.setMaxWidth(Double.MAX_VALUE);
         typeDocument.setStyle("-fx-font-size: 24px;");
