@@ -34,6 +34,8 @@ public class LoginView extends StackPane {
         HBox container = new HBox(0);
         container.setPadding(new Insets(25));
         container.getStyleClass().add(Styles.BG_ACCENT_EMPHASIS);
+        container.prefWidthProperty().bind(this.widthProperty());
+        container.prefHeightProperty().bind(this.heightProperty());
 
         VBox leftPanel = createLeftPanel();
         VBox rightPanel = createRightPanel();

@@ -36,7 +36,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         Request request = new Request.Builder()
-                .url(baseUrl + "j_security_check_for_standar")
+                .url(baseUrl + "/j_security_check_for_standar")
                 .post(form)
                 .build();
 

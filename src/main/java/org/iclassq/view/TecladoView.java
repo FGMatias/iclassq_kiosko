@@ -25,6 +25,8 @@ public class TecladoView extends StackPane {
     private void init() {
         HBox container = new HBox(0);
         container.getStyleClass().add(Styles.BG_DEFAULT);
+        container.prefWidthProperty().bind(this.widthProperty());
+        container.prefHeightProperty().bind(this.heightProperty());
 
         VBox leftPanel = createLeftPanel();
         VBox rightPanel = createRightPanel();

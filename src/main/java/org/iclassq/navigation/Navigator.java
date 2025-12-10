@@ -1,8 +1,10 @@
 package org.iclassq.navigation;
 
 import javafx.application.Platform;
+import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import org.iclassq.controller.GruposController;
 import org.iclassq.controller.LoginController;
@@ -25,11 +27,19 @@ public class Navigator {
     }
 
     public static void navigateTo(Parent view) {
-        Platform.runLater(() -> {
-            Scene scene = new Scene(view);
-            history.push(scene);
-            primaryStage.setScene(scene);
-        });
+        if (Platform.isFxApplicationThread()) {
+            changeScene(view);
+        } else {
+            Platform.runLater(() -> changeScene(view));
+        }
+    }
+
+    private static void changeScene(Parent view) {
+        StackPane root = new StackPane(view);
+        root.setPadding(Insets.EMPTY);
+        Scene scene = new Scene(root);
+        history.push(scene);
+        primaryStage.setScene(scene);
     }
 
     public static void navigateBack() {
