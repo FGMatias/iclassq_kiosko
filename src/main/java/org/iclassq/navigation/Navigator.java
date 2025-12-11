@@ -1,21 +1,18 @@
 package org.iclassq.navigation;
 
 import javafx.application.Platform;
-import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import org.iclassq.controller.GruposController;
 import org.iclassq.controller.LoginController;
 import org.iclassq.controller.SubGruposController;
-import org.iclassq.controller.TecladoController;
+import org.iclassq.controller.IdentificationController;
 import org.iclassq.model.domain.SessionData;
 import org.iclassq.view.GruposView;
 import org.iclassq.view.LoginView;
 import org.iclassq.view.SubGruposView;
-import org.iclassq.view.TecladoView;
+import org.iclassq.view.IdentificationView;
 
 import java.util.Stack;
 
@@ -76,8 +73,8 @@ public class Navigator {
     }
 
     public static void navigateToKeyboard() {
-        TecladoView view = new TecladoView();
-        new TecladoController(view);
+        IdentificationView view = new IdentificationView();
+        new IdentificationController(view);
         navigateTo(view);
     }
 

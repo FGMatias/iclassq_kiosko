@@ -2,7 +2,6 @@ package org.iclassq;
 
 import atlantafx.base.theme.PrimerLight;
 import javafx.application.Application;
-import javafx.scene.Scene;
 import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 import org.iclassq.config.AppConfig;
@@ -10,7 +9,6 @@ import org.iclassq.config.ServiceFactory;
 import org.iclassq.navigation.Navigator;
 import org.iclassq.util.Constants;
 import org.iclassq.util.Fonts;
-import org.iclassq.view.TecladoView;
 
 public class KioskoApplication extends Application {
 

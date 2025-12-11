@@ -7,22 +7,21 @@ import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.response.TipoDocumentoDTO;
 import org.iclassq.navigation.Navigator;
 import org.iclassq.service.TipoDocumentoService;
-import org.iclassq.view.TecladoView;
+import org.iclassq.view.IdentificationView;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-public class TecladoController {
-    private final TecladoView view;
+public class IdentificationController {
+    private final IdentificationView view;
     private final TipoDocumentoService tipoDocumentoService;
 
-    private final Logger logger = Logger.getLogger(TecladoController.class.getName());
+    private final Logger logger = Logger.getLogger(IdentificationController.class.getName());
     private Map<String, Integer> documentTypesMap = new HashMap<>();
 
-    public TecladoController(TecladoView view) {
+    public IdentificationController(IdentificationView view) {
         this.view = view;
         this.tipoDocumentoService = ServiceFactory.getTipoDocumentoService();
         view.setOnNext(this::handleNext);

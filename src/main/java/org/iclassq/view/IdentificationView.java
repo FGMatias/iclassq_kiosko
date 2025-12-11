@@ -10,14 +10,14 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import org.iclassq.util.Fonts;
 
-public class TecladoView extends StackPane {
+public class IdentificationView extends StackPane {
     private ComboBox<String> typeDocument;
     private TextField documentNumber;
     private Button btnNext;
     private Button btnDelete;
     private Runnable onNext;
 
-    public TecladoView() {
+    public IdentificationView() {
         init();
         setupEventHandlers();
     }

@@ -9,7 +9,6 @@ import org.iclassq.navigation.Navigator;
 import org.iclassq.service.AuthService;
 import org.iclassq.util.Constants;
 import org.iclassq.view.LoginView;
-import org.iclassq.view.TecladoView;
 
 public class LoginController {
     private final LoginView view;
