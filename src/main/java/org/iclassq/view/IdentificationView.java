@@ -8,23 +8,35 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
+import javafx.scene.text.TextAlignment;
+import org.iclassq.model.domain.DocumentTypeConfig;
 import org.iclassq.util.Fonts;
+import org.iclassq.view.components.Message;
 
 public class IdentificationView extends StackPane {
     private ComboBox<String> typeDocument;
     private TextField documentNumber;
+    private Label errorLabel;
+    private Label lengthIndicator;
     private Button btnNext;
     private Button btnDelete;
+
     private Runnable onNext;
+    private Runnable onTypeDocumentChange;
+
+    private DocumentTypeConfig currentConfig;
 
     public IdentificationView() {
         init();
         setupEventHandlers();
+
+        Message.initialize(this);
     }
 
     private void init() {
         HBox container = new HBox(0);
         container.setPadding(new Insets(25));
+        container.getStyleClass().add(Styles.BG_SUBTLE);
 
         VBox leftPanel = createLeftPanel();
         VBox rightPanel = createRightPanel();
@@ -74,8 +86,21 @@ public class IdentificationView extends StackPane {
         typeDocBox.getChildren().addAll(typeDocLabel, typeDocument);
 
         VBox docNumberBox = new VBox(15);
+
+        HBox docNumberHeader = new HBox(10);
+        docNumberHeader.setAlignment(Pos.CENTER_LEFT);
+
         Label docNumberLabel = new Label("Número de Documento");
         docNumberLabel.setFont(Fonts.medium(20));
+
+        lengthIndicator = new Label("0/8");
+        lengthIndicator.setFont(Fonts.regular(16));
+        lengthIndicator.getStyleClass().add(Styles.TEXT_SUBTLE);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        docNumberHeader.getChildren().addAll(docNumberLabel, spacer, lengthIndicator);
 
         documentNumber = new TextField();
         documentNumber.setPromptText("Ingrese su número de documento");
@@ -83,10 +108,19 @@ public class IdentificationView extends StackPane {
         documentNumber.setFont(Fonts.regular(30));
         documentNumber.setEditable(false);
         documentNumber.setFocusTraversable(false);
-        documentNumber.getStyleClass().add(Styles.LARGE);
+        documentNumber.getStyleClass().addAll(Styles.LARGE, Styles.BG_DEFAULT);
         documentNumber.setStyle("-fx-alignment: center;");
 
-        docNumberBox.getChildren().addAll(docNumberLabel, documentNumber);
+        errorLabel = new Label();
+        errorLabel.setFont(Fonts.regular(14));
+        errorLabel.getStyleClass().add(Styles.DANGER);
+        errorLabel.setWrapText(true);
+        errorLabel.setMaxWidth(Double.MAX_VALUE);
+        errorLabel.setTextAlignment(TextAlignment.LEFT);
+        errorLabel.setVisible(false);
+        errorLabel.setManaged(false);
+
+        docNumberBox.getChildren().addAll(docNumberHeader, documentNumber, errorLabel);
 
         formContainer.getChildren().addAll(typeDocBox, docNumberBox);
 
@@ -123,7 +157,6 @@ public class IdentificationView extends StackPane {
         keypad.setAlignment(Pos.CENTER);
         keypad.setHgap(15);
         keypad.setVgap(15);
-//        keypad.setPadding(new Insets(20));
 
         int number = 1;
         for (int row = 0; row < 3; row++) {
@@ -143,7 +176,11 @@ public class IdentificationView extends StackPane {
 
         Button btnClear = createKeypadButton("C");
         btnClear.getStyleClass().add(Styles.DANGER);
-        btnClear.setOnAction(e -> documentNumber.clear());
+        btnClear.setOnAction(e -> {
+            documentNumber.clear();
+            updateLengthIndicator();
+            hideInlineError();
+        });
         keypad.add(btnClear, 2, 3);
 
         for (int i = 0; i < 3; i++) {
@@ -172,29 +209,140 @@ public class IdentificationView extends StackPane {
         btn.setOnMouseExited(e -> btn.setStyle("-fx-background-radius: 10px;"));
 
         if (text.matches("\\d")) {
-            btn.setOnAction(e -> {
-                documentNumber.appendText(text);
-            });
+            btn.setOnAction(e -> handleKeyPress(text.charAt(0)));
         } else if (text.equals("⌫")) {
-            btn.setOnAction(e -> {
-                String current = documentNumber.getText();
-                if (!current.isEmpty()) {
-                    documentNumber.setText(current.substring(0, current.length() - 1));
-                }
-            });
+            btn.setOnAction(e -> handleBackspace());
         }
 
         return btn;
     }
 
+    private void handleKeyPress(char digit) {
+        String current = documentNumber.getText();
+
+        if (currentConfig != null && current.length() >= currentConfig.getMaxLength()) {
+            Message.showWarning(
+                    "Máximo alcanzado",
+                    "Ya alcanzó el máximo de " + currentConfig.getMaxLength() + " caracteres"
+            );
+            return;
+        }
+
+        if (currentConfig != null && !currentConfig.isCharacterAllowed(digit)) {
+            String allowedType = currentConfig.getCharacterType().toString().equals("NUMERIC")
+                    ? "números"
+                    : "letras y números";
+
+            Message.showError(
+                    "Carácter no válido",
+                    "Solo se permiten " + allowedType + " para " + currentConfig.getName()
+            );
+            return;
+        }
+
+        documentNumber.appendText(String.valueOf(digit));
+        updateLengthIndicator();
+        hideInlineError();
+    }
+
+    private void handleBackspace() {
+        String current = documentNumber.getText();
+        if (!current.isEmpty()) {
+            documentNumber.setText(current.substring(0, current.length() - 1));
+            updateLengthIndicator();
+            hideInlineError();
+        }
+    }
+
+    private void updateLengthIndicator() {
+        if (currentConfig != null) {
+            int current = documentNumber.getText().length();
+            int max = currentConfig.getMaxLength();
+            lengthIndicator.setText(current + "/" + max);
+
+            if (current == max && currentConfig.isValidLength(documentNumber.getText())) {
+                lengthIndicator.getStyleClass().removeAll(Styles.TEXT_SUBTLE, Styles.WARNING);
+                lengthIndicator.getStyleClass().add(Styles.SUCCESS);
+            } else if (current < currentConfig.getMinLength()) {
+                lengthIndicator.getStyleClass().removeAll(Styles.TEXT_SUBTLE, Styles.SUCCESS);
+                lengthIndicator.getStyleClass().add(Styles.WARNING);
+            } else {
+                lengthIndicator.getStyleClass().removeAll(Styles.WARNING, Styles.SUCCESS);
+                lengthIndicator.getStyleClass().add(Styles.TEXT_SUBTLE);
+            }
+        }
+    }
+
+    private void showInlineError(String message) {
+        errorLabel.setText("⚠ " + message);
+        errorLabel.setVisible(true);
+        errorLabel.setManaged(true);
+    }
+
+    private void hideInlineError() {
+        errorLabel.setVisible(false);
+        errorLabel.setManaged(false);
+    }
+
+    public void updateDocumentConfig(Integer tipoDocId) {
+        currentConfig = DocumentTypeConfig.getConfig(tipoDocId);
+
+        documentNumber.clear();
+        hideInlineError();
+
+        updateLengthIndicator();
+
+        if (currentConfig != null) {
+            documentNumber.setPromptText("Ingrese su " + currentConfig.getName());
+
+            Message.showInformation(
+                    "Tipo de documento: " + currentConfig.getName(),
+                    "Ingrese " + (currentConfig.getMinLength() == currentConfig.getMaxLength()
+                            ? currentConfig.getMaxLength() + " caracteres"
+                            : "entre " + currentConfig.getMinLength() + " y " + currentConfig.getMaxLength() + " caracteres")
+            );
+        }
+    }
+
+    public boolean isValid() {
+        String doc = documentNumber.getText().trim();
+
+        if (doc.isEmpty()) {
+            Message.showError(
+                    "Campo requerido",
+                    "Por favor ingrese su número de documento"
+            );
+            return false;
+        }
+
+        if (currentConfig != null && !currentConfig.isValidLength(doc)) {
+            Message.showWarning(
+                    "Longitud incorrecta",
+                    currentConfig.getLengthErrorMessage()
+            );
+            return false;
+        }
+
+        Message.showSuccess(
+                "Documento válido",
+                "Puede continuar al siguiente paso"
+        );
+
+        return true;
+    }
+
     private void setupEventHandlers() {
         btnNext.setOnAction(e -> {
             if (onNext != null) {
-                if (!documentNumber.getText().isEmpty()) {
+                if (isValid()) {
                     onNext.run();
-                } else {
-                    System.out.println("Por favor ingrese un número de documento");
                 }
+            }
+        });
+
+        typeDocument.setOnAction(e -> {
+            if (onTypeDocumentChange != null) {
+                onTypeDocumentChange.run();
             }
         });
     }
@@ -215,7 +363,15 @@ public class IdentificationView extends StackPane {
         return btnDelete;
     }
 
+    public DocumentTypeConfig getCurrentConfig() {
+        return currentConfig;
+    }
+
     public void setOnNext(Runnable callback) {
         this.onNext = callback;
+    }
+
+    public void setOnTypeDocumentChange(Runnable callback) {
+        this.onTypeDocumentChange = callback;
     }
 }

@@ -4,16 +4,22 @@ import okhttp3.*;
 import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.request.LoginRequestDTO;
 import org.iclassq.model.dto.response.LoginResponseDTO;
+import org.iclassq.model.dto.response.UsuarioRolDTO;
 import org.iclassq.service.AuthService;
+import org.iclassq.service.UsuarioService;
 import org.iclassq.util.Constants;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 public class AuthServiceImpl implements AuthService {
     private final String baseUrl;
     private final OkHttpClient client;
     private final CookieJar cookieJar;
+    private final UsuarioServiceImpl usuarioService;
+    private final Logger logger = Logger.getLogger(AuthServiceImpl.class.getName());
 
     public AuthServiceImpl(String baseUrl, CookieJar cookieJar) {
         this.baseUrl = baseUrl;
@@ -25,6 +31,7 @@ public class AuthServiceImpl implements AuthService {
                 .followRedirects(true)
                 .followSslRedirects(true)
                 .build();
+        this.usuarioService = new UsuarioServiceImpl(baseUrl, cookieJar);
     }
 
     @Override
@@ -45,14 +52,7 @@ public class AuthServiceImpl implements AuthService {
             String finalUrl = response.request().url().toString();
 
             if (finalUrl.contains("/main.app") || response.isSuccessful()) {
-                String sessionId = null;
-
-                for (Cookie cookie : cookieJar.loadForRequest(HttpUrl.parse(baseUrl))) {
-                    if ("JSESSIONID".equals(cookie.name())) {
-                        sessionId = cookie.value();
-                        break;
-                    }
-                }
+                String sessionId = extractSessionId();
 
                 login.setSuccess(true);
                 login.setSessionId(sessionId);
@@ -61,6 +61,24 @@ public class AuthServiceImpl implements AuthService {
                 SessionData.getInstance().setSessionId(sessionId);
                 SessionData.getInstance().setAutenticado(true);
 
+                try {
+                    List<UsuarioRolDTO> roles = usuarioService.getCurrentUser(dto.getUsername());
+
+                    if (roles != null && !roles.isEmpty()) {
+                        UsuarioRolDTO usuarioRol = roles.get(0);
+
+                        SessionData.getInstance().setUsuarioData(usuarioRol);
+
+                        logger.info("Datos del usuario cargados en SessionData");
+                        logger.info("   - Username: " + usuarioRol.getUsuario().getVUsuarioUsername());
+                        logger.info("   - Sucursal ID: " + usuarioRol.getUsuario().getISucursal());
+                        logger.info("   - Rol Equipo ID: " + usuarioRol.getUsuario().getIRolEquipo());
+                        logger.info("   - Rol: " + usuarioRol.getRol().getVRolNombre());
+                    }
+                } catch (IOException e) {
+                    logger.warning("No se pudieron obtener datos del usuario: " + e.getMessage());
+                }
+
                 return login;
             } else {
                 login.setSuccess(false);
@@ -68,6 +86,15 @@ public class AuthServiceImpl implements AuthService {
                 return login;
             }
         }
+    }
+
+    private String extractSessionId() {
+        for (Cookie cookie : cookieJar.loadForRequest(HttpUrl.parse(baseUrl))) {
+            if ("JSESSIONID".equals(cookie.name())) {
+                return cookie.value();
+            }
+        }
+        return null;
     }
 
     @Override

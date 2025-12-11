@@ -2,8 +2,7 @@ package org.iclassq.model.domain;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.iclassq.model.dto.response.GrupoDTO;
-import org.iclassq.model.dto.response.SubGrupoDTO;
+import org.iclassq.model.dto.response.*;
 
 import java.time.LocalDateTime;
 
@@ -11,10 +10,12 @@ import java.time.LocalDateTime;
 @Setter
 public class SessionData {
     private static SessionData instance;
-    private Integer sucursalId;
-    private Integer idRolEquipo;
     private String sessionId;
     private boolean autenticado;
+    private String username;
+    private Integer sucursalId;
+    private Integer rolEquipoId;
+    private Integer rolId;
     private Integer kioskId;
     private Integer tipoDocumento;
     private String tipoDocumentoDescripcion;
@@ -40,6 +41,24 @@ public class SessionData {
         instance = new SessionData();
     }
 
+    public void setUsuarioData(UsuarioRolDTO usuarioRol) {
+        if (usuarioRol == null) {
+            return;
+        }
+
+        UsuarioDTO usuario = usuarioRol.getUsuario();
+        if (usuario != null) {
+            this.username = usuario.getVUsuarioUsername();
+            this.sucursalId = usuario.getISucursal();
+            this.rolEquipoId = usuario.getIRolEquipo();
+        }
+
+        RolDTO rol = usuarioRol.getRol();
+        if (rol != null) {
+            this.rolId = rol.getIRolId();
+        }
+    }
+
     public boolean puedeGenerarTicket() {
         return numeroDocumento != null &&
                 !numeroDocumento.isEmpty() &&
@@ -56,5 +75,16 @@ public class SessionData {
         this.mlResult = null;
         this.esPreferencial = false;
         this.inicioSesion = LocalDateTime.now();
+    }
+
+    public void limpiarSesion() {
+        this.sessionId = null;
+        this.autenticado = false;
+        this.username = null;
+        this.sucursalId = null;
+        this.rolEquipoId = null;
+        this.rolId = null;
+        this.kioskId = null;
+        limpiarFlujoAtencion();
     }
 }

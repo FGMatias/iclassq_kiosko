@@ -1,9 +1,6 @@
 package org.iclassq.model.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
@@ -13,4 +10,14 @@ public class LoginResponseDTO {
     private boolean success;
     private String message;
     private String sessionId;
+    private UsuarioData usuario;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UsuarioData {
+        private Integer iRolEquipo;
+        private Integer iSucursal;
+        private Integer iRol;
+    }
 }

@@ -8,6 +8,7 @@ import org.iclassq.model.dto.response.TipoDocumentoDTO;
 import org.iclassq.navigation.Navigator;
 import org.iclassq.service.TipoDocumentoService;
 import org.iclassq.view.IdentificationView;
+import org.iclassq.view.components.Message;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +26,7 @@ public class IdentificationController {
         this.view = view;
         this.tipoDocumentoService = ServiceFactory.getTipoDocumentoService();
         view.setOnNext(this::handleNext);
+        view.setOnTypeDocumentChange(this::handleTypeDocumentChange);
         loadDocumentTypes();
     }
 
@@ -40,11 +42,14 @@ public class IdentificationController {
                     populateDocumentTypes(list);
                     view.getTypeDocument().setDisable(false);
                     view.getBtnNext().setDisable(false);
+                    if (!list.isEmpty()) {
+                        handleTypeDocumentChange();
+                    }
                 });
             } catch (Exception e) {
                 logger.severe(e.getMessage());
                 Platform.runLater(() -> {
-                    showError("Error de conexión",
+                    Message.showError("Error de conexión",
                             "No se pudieron cargar los tipos de documento.");
                     view.getTypeDocument().setDisable(false);
                     view.getBtnNext().setDisable(false);
@@ -53,38 +58,60 @@ public class IdentificationController {
         }).start();
     }
 
+    private void handleTypeDocumentChange() {
+        String tipoDocDescripcion = view.getTypeDocument().getValue();
+
+        if (tipoDocDescripcion == null || tipoDocDescripcion.isEmpty()) {
+            return;
+        }
+
+        Integer tipoDocId = documentTypesMap.get(tipoDocDescripcion);
+
+        if (tipoDocId != null) {
+            view.updateDocumentConfig(tipoDocId);
+        }
+    }
+
     private void handleNext() {
-        String tipoDocumento = view.getTypeDocument().getValue();
-        String numeroDocumento = view.getDocumentNumber().getText();
+        String tipoDocDescripcion = view.getTypeDocument().getValue();
+        String numeroDoc = view.getDocumentNumber().getText().trim();
 
-        if (tipoDocumento == null || tipoDocumento.isEmpty()) {
-            showError("Tipo de documento requerido",
-                    "Por favor seleccione un tipo de documento.");
+        if (tipoDocDescripcion == null || tipoDocDescripcion.isEmpty()) {
+            Message.showWarning(
+                    "Tipo de documento requerido",
+                    "Por favor seleccione un tipo de documento"
+            );
             return;
         }
 
-        if (numeroDocumento.isEmpty()) {
-            showError("Número de documento requerido",
-                    "Por favor ingrese su número de documento.");
+        if (!view.isValid()) {
             return;
         }
 
-        if (numeroDocumento.length() < 8) {
-            showError("Documento inválido",
-                    "El número de documento debe tener al menos 8 dígitos.");
+        Integer tipoDocId = documentTypesMap.get(tipoDocDescripcion);
+
+        if (tipoDocId == null) {
+            Message.showError(
+                    "Error interno",
+                    "Tipo de documento no válido. Por favor intente nuevamente."
+            );
             return;
         }
 
-        Integer tipoDocumentoId = documentTypesMap.get(tipoDocumento);
-
-        if (tipoDocumentoId == null) {
-            showError("Error", "Tipo de documento no válido.");
-            return;
+        if (view.getCurrentConfig() != null) {
+            if (!view.getCurrentConfig().isValidLength(numeroDoc)) {
+                Message.showWarning(
+                        "Documento inválido",
+                        view.getCurrentConfig().getLengthErrorMessage()
+                );
+                return;
+            }
         }
 
-        SessionData.getInstance().setTipoDocumento(tipoDocumentoId);
-        SessionData.getInstance().setTipoDocumentoDescripcion(tipoDocumento);
-        SessionData.getInstance().setNumeroDocumento(numeroDocumento);
+        SessionData.getInstance().setTipoDocumento(tipoDocId);
+        SessionData.getInstance().setTipoDocumentoDescripcion(tipoDocDescripcion);
+        SessionData.getInstance().setNumeroDocumento(numeroDoc);
+
         Navigator.navigateToGroups();
     }
 
@@ -101,13 +128,5 @@ public class IdentificationController {
         if (!list.isEmpty()) {
             view.getTypeDocument().setValue(list.get(0).getDescripcion());
         }
-    }
-
-    private void showError(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
     }
 }

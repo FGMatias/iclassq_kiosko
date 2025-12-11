@@ -97,6 +97,7 @@ public class LoginView extends StackPane {
 
         VBox header = new VBox(20);
         Label title = new Label("Bienvenidos");
+        title.getStyleClass().add(Styles.TITLE_1);
         title.setFont(Fonts.bold(48));
         title.setAlignment(Pos.CENTER_LEFT);
 
@@ -116,7 +117,7 @@ public class LoginView extends StackPane {
         username.setPromptText("Ingrese el nombre de usuario");
         username.setFont(Fonts.regular(20));
         username.setPrefHeight(55);
-        username.getStyleClass().add(Styles.LARGE);
+        username.getStyleClass().add(Styles.BG_DEFAULT);
 
         usernameBox.getChildren().addAll(usernameLabel, username);
 

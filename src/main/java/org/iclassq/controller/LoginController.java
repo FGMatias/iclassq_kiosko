@@ -8,6 +8,7 @@ import org.iclassq.model.dto.response.LoginResponseDTO;
 import org.iclassq.navigation.Navigator;
 import org.iclassq.service.AuthService;
 import org.iclassq.util.Constants;
+import org.iclassq.util.OnScreenKeyboard;
 import org.iclassq.view.LoginView;
 
 public class LoginController {
@@ -17,6 +18,8 @@ public class LoginController {
     public LoginController(LoginView view) {
         this.view = view;
         this.authService = ServiceFactory.getAuthService();
+
+        OnScreenKeyboard.show();
         view.setOnLogin(this::handleLogin);
     }
 
@@ -40,6 +43,7 @@ public class LoginController {
                     view.getBtnLogin().setDisable(false);
 
                     if (response.isSuccess()) {
+                        OnScreenKeyboard.hide();
                         Navigator.navigateToKeyboard();
                     } else {
                         showError(response.getMessage());

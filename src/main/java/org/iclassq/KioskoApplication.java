@@ -1,6 +1,6 @@
 package org.iclassq;
 
-import atlantafx.base.theme.PrimerLight;
+import atlantafx.base.theme.*;
 import javafx.application.Application;
 import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
@@ -15,7 +15,7 @@ public class KioskoApplication extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         Fonts.loadFonts();
-        Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
+        Application.setUserAgentStylesheet(new CupertinoLight().getUserAgentStylesheet());
 
         ServiceFactory.init(AppConfig.getBackendUrl());
 
