@@ -30,7 +30,6 @@ public class Fonts {
 
             if (interRegular != null) {
                 fontFamily = interRegular.getFamily();
-                logger.info("Fuente cargada correctamente: " + fontFamily);
             } else {
                 logger.info("Error: No se pudo cargar la fuente, usando fuente del sistema");
             }

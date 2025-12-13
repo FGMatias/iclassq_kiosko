@@ -7,7 +7,6 @@ import org.iclassq.model.dto.response.GrupoDTO;
 import org.iclassq.navigation.Navigator;
 import org.iclassq.service.GrupoService;
 import org.iclassq.view.GruposView;
-import org.iclassq.view.SubGruposView;
 
 import java.util.List;
 
@@ -25,8 +24,8 @@ public class GruposController {
     private void loadGroups() {
         new Thread(() -> {
             try {
-                Integer sucursalId = SessionData.getInstance().getSucursalId();
-                List<GrupoDTO> grupos = grupoService.getAllByTime(sucursalId);
+                Integer rolEquipoId = SessionData.getInstance().getRolEquipoId();
+                List<GrupoDTO> grupos = grupoService.getAllByTime(rolEquipoId);
 
                 Platform.runLater(() -> view.setGrupos(grupos));
             } catch (Exception e) {
@@ -37,8 +36,6 @@ public class GruposController {
 
     private void handleGrupoSelected(GrupoDTO grupo) {
         SessionData.getInstance().setGrupo(grupo);
-
-        // ✅ Navegación simple
         Navigator.navigateToSubGroups();
     }
 }

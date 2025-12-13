@@ -3,187 +3,150 @@ package org.iclassq.view;
 import atlantafx.base.theme.Styles;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.*;
+import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.response.GrupoDTO;
+import org.iclassq.navigation.Navigator;
 import org.iclassq.util.Fonts;
+import org.iclassq.view.components.CardButton;
+import org.iclassq.view.components.Grid;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class GruposView extends StackPane {
-
-    private GridPane gruposGrid;
+public class GruposView {
+    private final BorderPane root;
+    private Grid gruposGrid;
     private Consumer<GrupoDTO> onGrupoSelected;
 
     public GruposView() {
-        init();
+        root = buildContent();
     }
 
-    private void init() {
-        VBox container = new VBox(40);
-        container.setAlignment(Pos.TOP_CENTER);
-        container.setPadding(new Insets(60));
-        container.getStyleClass().add(Styles.BG_DEFAULT);
+    private BorderPane buildContent() {
+        BorderPane container = new BorderPane();
+        container.setPadding(new Insets(30, 40, 30, 40));
+        container.getStyleClass().add(Styles.BG_SUBTLE);
 
-        // Título principal
-        Label titleLabel = new Label("Seleccione el servicio que necesita");
-        titleLabel.setFont(Fonts.bold(48));
-        titleLabel.setAlignment(Pos.CENTER);
+        HBox header = createHeader();
+        HBox footer = createFooter();
 
-        // Subtítulo opcional
-        Label subtitleLabel = new Label("Toque la opción que corresponda a su atención");
-        subtitleLabel.setFont(Fonts.regular(24));
-        subtitleLabel.getStyleClass().add(Styles.TEXT_SUBTLE);
-        subtitleLabel.setAlignment(Pos.CENTER);
+        container.setTop(header);
+        container.setBottom(footer);
 
-        // Grid para los grupos
-        gruposGrid = new GridPane();
-        gruposGrid.setAlignment(Pos.CENTER);
-        gruposGrid.setHgap(30);
-        gruposGrid.setVgap(30);
-        gruposGrid.setPadding(new Insets(20));
+        return container;
+    }
 
-        // ScrollPane por si hay muchos grupos (opcional)
-        ScrollPane scrollPane = new ScrollPane(gruposGrid);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setFitToHeight(true);
-        scrollPane.setStyle("-fx-background-color: transparent;");
-        scrollPane.getStyleClass().add(Styles.BG_DEFAULT);
-        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+    private HBox createHeader() {
+        HBox header = new HBox(15);
+        header.setAlignment(Pos.CENTER);
+        header.setPadding(new Insets(0, 0, 40, 0));
 
-        container.getChildren().addAll(titleLabel, subtitleLabel, scrollPane);
+        Label tituloLabel = new Label("NÚMERO DE DOCUMENTO:");
+        tituloLabel.setFont(Fonts.bold(18));
 
-        getChildren().add(container);
+        String numeroDocumento = SessionData.getInstance().getNumeroDocumento();
+        Label numeroLabel = new Label(numeroDocumento != null ? numeroDocumento : "---");
+        numeroLabel.setFont(Fonts.bold(40));
+        numeroLabel.getStyleClass().add(Styles.ACCENT);
+
+        header.getChildren().addAll(tituloLabel, numeroLabel);
+
+        return header;
+    }
+
+    private HBox createFooter() {
+        HBox footer = new HBox();
+        footer.setAlignment(Pos.CENTER_LEFT);
+        footer.setPadding(new Insets(40, 0, 0, 0));
+
+        Button btnRegresar = new Button("REGRESAR");
+        btnRegresar.getStyleClass().addAll(Styles.ACCENT, Styles.BUTTON_OUTLINED);
+        btnRegresar.setPrefWidth(220);
+        btnRegresar.setPrefHeight(80);
+        btnRegresar.setFont(Fonts.bold(20));
+        btnRegresar.setCursor(Cursor.HAND);
+        btnRegresar.setStyle(
+                "-fx-background-radius: 8;" +
+                "-fx-border-radius: 8;"
+        );
+        btnRegresar.setOnAction(e -> handleRegresar());
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label paginacion = new Label("Página 1 de 1");
+        paginacion.setFont(Fonts.bold(18));
+        paginacion.getStyleClass().add(Styles.TEXT_MUTED);
+
+        footer.getChildren().addAll(btnRegresar, spacer, paginacion);
+
+        return footer;
     }
 
     public void setGrupos(List<GrupoDTO> grupos) {
-        gruposGrid.getChildren().clear();
+        if (gruposGrid != null) {
+            root.getStyleClass().remove(grupos);
+        }
 
-        // Calcular columnas basado en cantidad de grupos
-        int cols = calculateColumns(grupos.size());
+        if (grupos == null || grupos.isEmpty()) {
+            Label emptyLabel = new Label("No hay grupos disponibles");
+            emptyLabel.setFont(Fonts.regular(20));
+            emptyLabel.getStyleClass().add(Styles.TEXT_MUTED);
+            root.setCenter(emptyLabel);
+            return;
+        }
 
-        int row = 0;
-        int col = 0;
-
+        List<CardButton> buttons = new ArrayList<>();
         for (GrupoDTO grupo : grupos) {
-            VBox card = createGrupoCard(grupo);
-            gruposGrid.add(card, col, row);
+            CardButton button = new CardButton(grupo.getNombre());
 
-            col++;
-            if (col >= cols) {
-                col = 0;
-                row++;
-            }
+            button.setOnClick(() -> {
+                if (onGrupoSelected != null) {
+                    onGrupoSelected.accept(grupo);
+                }
+            });
+
+            buttons.add(button);
         }
 
-        // Configurar constraints de columnas para que sean uniformes
-        gruposGrid.getColumnConstraints().clear();
-        for (int i = 0; i < cols; i++) {
-            ColumnConstraints colConstraints = new ColumnConstraints();
-            colConstraints.setPercentWidth(100.0 / cols);
-            colConstraints.setHgrow(Priority.ALWAYS);
-            gruposGrid.getColumnConstraints().add(colConstraints);
-        }
-    }
-
-    private int calculateColumns(int totalGrupos) {
-        // Lógica para decidir cuántas columnas según cantidad de grupos
-        if (totalGrupos <= 3) return 3;
-        if (totalGrupos <= 6) return 3;
-        if (totalGrupos <= 9) return 3;
-        return 4; // Máximo 4 columnas
-    }
-
-    private VBox createGrupoCard(GrupoDTO grupo) {
-        VBox card = new VBox(20);
-        card.setAlignment(Pos.CENTER);
-        card.setPadding(new Insets(40));
-        card.setPrefSize(300, 280);
-        card.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        card.getStyleClass().addAll(Styles.ELEVATED_1);
-        card.setStyle(
-                "-fx-background-color: white; " +
-                        "-fx-background-radius: 15px; " +
-                        "-fx-cursor: hand;"
+        gruposGrid = new Grid(
+                3,
+                2,
+                30,
+                30,
+                200,
+                buttons.toArray(new CardButton[0])
         );
 
-        // Ícono (emoji grande o puedes usar ImageView)
-        Label iconLabel = new Label(getIconForGrupo(grupo.getNombre()));
-        iconLabel.setFont(Fonts.regular(72));
-        iconLabel.setAlignment(Pos.CENTER);
-
-        // Nombre del grupo
-        Label nameLabel = new Label(grupo.getNombre());
-        nameLabel.setFont(Fonts.bold(24));
-        nameLabel.setAlignment(Pos.CENTER);
-        nameLabel.setWrapText(true);
-        nameLabel.setMaxWidth(250);
-
-        // Descripción opcional
-        if (grupo.getDescripcion() != null && !grupo.getDescripcion().isEmpty()) {
-            Label descLabel = new Label(grupo.getDescripcion());
-            descLabel.setFont(Fonts.regular(16));
-            descLabel.getStyleClass().add(Styles.TEXT_SUBTLE);
-            descLabel.setAlignment(Pos.CENTER);
-            descLabel.setWrapText(true);
-            descLabel.setMaxWidth(250);
-            card.getChildren().addAll(iconLabel, nameLabel, descLabel);
-        } else {
-            card.getChildren().addAll(iconLabel, nameLabel);
-        }
-
-        // Efectos hover
-        card.setOnMouseEntered(e -> {
-            card.setStyle(
-                    "-fx-background-color: -color-accent-subtle; " +
-                            "-fx-background-radius: 15px; " +
-                            "-fx-cursor: hand; " +
-                            "-fx-scale-x: 1.05; " +
-                            "-fx-scale-y: 1.05;"
-            );
-        });
-
-        card.setOnMouseExited(e -> {
-            card.setStyle(
-                    "-fx-background-color: white; " +
-                            "-fx-background-radius: 15px; " +
-                            "-fx-cursor: hand; " +
-                            "-fx-scale-x: 1.0; " +
-                            "-fx-scale-y: 1.0;"
-            );
-        });
-
-        // Click handler
-        card.setOnMouseClicked(e -> {
-            if (onGrupoSelected != null) {
-                onGrupoSelected.accept(grupo);
-            }
-        });
-
-        return card;
+        root.setCenter(gruposGrid);
     }
 
-    // Mapeo de nombres a íconos (puedes personalizar según tus grupos)
-    private String getIconForGrupo(String nombreGrupo) {
-        String nombre = nombreGrupo.toLowerCase();
-
-        if (nombre.contains("consul")) return "🏥";
-        if (nombre.contains("farmacia")) return "💊";
-        if (nombre.contains("laboratorio") || nombre.contains("lab")) return "🔬";
-        if (nombre.contains("vacuna")) return "💉";
-        if (nombre.contains("admis") || nombre.contains("caja")) return "📋";
-        if (nombre.contains("emerg")) return "⚕️";
-        if (nombre.contains("imagen") || nombre.contains("radio")) return "📷";
-        if (nombre.contains("odonto") || nombre.contains("dental")) return "🦷";
-        if (nombre.contains("pediatr")) return "👶";
-        if (nombre.contains("gineco") || nombre.contains("obstetr")) return "🤰";
-
-        return "🏨"; // Ícono por defecto
+    private void handleRegresar() {
+        Navigator.navigateToIdentification();
     }
 
     public void setOnGrupoSelected(Consumer<GrupoDTO> callback) {
         this.onGrupoSelected = callback;
+    }
+
+    public BorderPane getRoot() {
+        return root;
+    }
+
+    public Grid getGruposGrid() {
+        return gruposGrid;
+    }
+
+    public void setGruposGrid(Grid gruposGrid) {
+        this.gruposGrid = gruposGrid;
+    }
+
+    public Consumer<GrupoDTO> getOnGrupoSelected() {
+        return onGrupoSelected;
     }
 }

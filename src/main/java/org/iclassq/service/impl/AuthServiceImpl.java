@@ -6,7 +6,6 @@ import org.iclassq.model.dto.request.LoginRequestDTO;
 import org.iclassq.model.dto.response.LoginResponseDTO;
 import org.iclassq.model.dto.response.UsuarioRolDTO;
 import org.iclassq.service.AuthService;
-import org.iclassq.service.UsuarioService;
 import org.iclassq.util.Constants;
 
 import java.io.IOException;
@@ -68,12 +67,6 @@ public class AuthServiceImpl implements AuthService {
                         UsuarioRolDTO usuarioRol = roles.get(0);
 
                         SessionData.getInstance().setUsuarioData(usuarioRol);
-
-                        logger.info("Datos del usuario cargados en SessionData");
-                        logger.info("   - Username: " + usuarioRol.getUsuario().getVUsuarioUsername());
-                        logger.info("   - Sucursal ID: " + usuarioRol.getUsuario().getISucursal());
-                        logger.info("   - Rol Equipo ID: " + usuarioRol.getUsuario().getIRolEquipo());
-                        logger.info("   - Rol: " + usuarioRol.getRol().getVRolNombre());
                     }
                 } catch (IOException e) {
                     logger.warning("No se pudieron obtener datos del usuario: " + e.getMessage());

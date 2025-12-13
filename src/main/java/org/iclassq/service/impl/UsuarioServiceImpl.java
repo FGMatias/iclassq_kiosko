@@ -1,13 +1,8 @@
 package org.iclassq.service.impl;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import okhttp3.CookieJar;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.iclassq.model.dto.response.LoginResponseDTO;
-import org.iclassq.model.dto.response.RolDTO;
-import org.iclassq.model.dto.response.UsuarioDTO;
 import org.iclassq.model.dto.response.UsuarioRolDTO;
 import org.iclassq.service.UsuarioService;
 
@@ -36,17 +31,6 @@ public class UsuarioServiceImpl extends BaseService implements UsuarioService {
 
             if (roles == null || roles.isEmpty()) {
                 throw new IOException("No se encontraron roles para el usuario");
-            }
-
-            if (!roles.isEmpty()) {
-                UsuarioRolDTO primerRol = roles.get(0);
-                if (primerRol.getUsuario() != null) {
-                    logger.info("   - Sucursal ID: " + primerRol.getUsuario().getISucursal());
-                    logger.info("   - Rol Equipo ID: " + primerRol.getUsuario().getIRolEquipo());
-                }
-                if (primerRol.getRol() != null) {
-                    logger.info("   - Rol: " + primerRol.getRol().getVRolNombre());
-                }
             }
 
             return roles;

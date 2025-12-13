@@ -59,7 +59,7 @@ public class Navigator {
     public static void reboot() {
         SessionData.getInstance().limpiarFlujoAtencion();
         history.clear();
-        navigateToKeyboard();
+        navigateToIdentification();
     }
 
     public static void clearHistory() {
@@ -72,7 +72,7 @@ public class Navigator {
         navigateTo(view);
     }
 
-    public static void navigateToKeyboard() {
+    public static void navigateToIdentification() {
         IdentificationView view = new IdentificationView();
         new IdentificationController(view);
         navigateTo(view);
@@ -81,7 +81,7 @@ public class Navigator {
     public static void navigateToGroups() {
         GruposView view = new GruposView();
         new GruposController(view);
-        navigateTo(view);
+        navigateTo(view.getRoot());
     }
 
     public static void navigateToSubGroups() {

@@ -44,7 +44,7 @@ public class LoginController {
 
                     if (response.isSuccess()) {
                         OnScreenKeyboard.hide();
-                        Navigator.navigateToKeyboard();
+                        Navigator.navigateToIdentification();
                     } else {
                         showError(response.getMessage());
                     }
