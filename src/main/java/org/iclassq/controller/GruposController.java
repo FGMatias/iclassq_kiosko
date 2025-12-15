@@ -27,7 +27,7 @@ public class GruposController {
                 Integer rolEquipoId = SessionData.getInstance().getRolEquipoId();
                 List<GrupoDTO> groups = grupoService.getAllByTime(rolEquipoId);
 
-                Platform.runLater(() -> view.setGrupos(groups));
+                Platform.runLater(() -> view.setGroups(groups));
             } catch (Exception e) {
                 e.printStackTrace();
             }

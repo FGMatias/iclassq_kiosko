@@ -1,51 +1,58 @@
 package org.iclassq.service.impl;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import okhttp3.*;
 import org.iclassq.model.dto.request.TicketRequestDTO;
 import org.iclassq.model.dto.response.TicketResponseDTO;
 import org.iclassq.service.TicketService;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
-public class TicketServiceImpl implements TicketService {
-    private final String baseUrl;
-    private final OkHttpClient client;
-    private final Gson gson;
+public class TicketServiceImpl extends BaseService implements TicketService {
 
     public TicketServiceImpl(String baseUrl, CookieJar cookieJar) {
-        this.baseUrl = baseUrl;
-        this.gson = new Gson();
-
-        this.client = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .cookieJar(cookieJar)
-                .build();
+        super(baseUrl, cookieJar);
     }
 
     @Override
     public TicketResponseDTO generateTicket(TicketRequestDTO dto) throws IOException {
         String url = baseUrl + "/generarticketatencion.app";
-        String json = gson.toJson(dto);
 
-        RequestBody body = RequestBody.create(
-                json,
-                MediaType.parse("application/json; charset=utf-8")
-        );
+        FormBody.Builder body = new FormBody.Builder();
+        body.add("idSubgrupo", String.valueOf(dto.getIdSubgrupo()));
+        body.add("idSucursal", String.valueOf(dto.getIdSucursal()));
+        body.add("prefijo", dto.getPrefijo());
+        body.add("nombre", dto.getNombre());
+        body.add("numDoc", dto.getNumDoc());
+        body.add("tipoDoc", String.valueOf(dto.getTipoDoc()));
+        body.add("validaDoc", String.valueOf(dto.getValidaDoc()));
 
-        Request request = new Request.Builder()
+        RequestBody request = body.build();
+
+        Request http = new Request.Builder()
                 .url(url)
-                .post(body)
+                .post(request)
                 .build();
 
-        try (Response response = client.newCall(request).execute()) {
-            if (response.isSuccessful()) {
-                String jsonRes = response.body().string();
-                return gson.fromJson(jsonRes, TicketResponseDTO.class);
+        try (Response response = client.newCall(http).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Error al generar el ticket: " + response);
             }
-            throw new IOException("Error al generar ticket: " + response.code());
+
+            String responseBody = response.body().string();
+            JsonObject jsonResponse = gson.fromJson(responseBody, JsonObject.class);
+            boolean success = jsonResponse.has("success") && jsonResponse.get("success").getAsBoolean();
+
+            if (!success) {
+                String errorMessage = jsonResponse.get("message").getAsString();
+                throw new IOException(errorMessage);
+            }
+
+            JsonObject data = jsonResponse.getAsJsonObject("data");
+            TicketResponseDTO ticket = gson.fromJson(data, TicketResponseDTO.class);
+
+            return ticket;
         }
     }
 }

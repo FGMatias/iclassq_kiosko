@@ -1,18 +1,18 @@
 package org.iclassq.navigation;
 
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import org.iclassq.controller.GruposController;
 import org.iclassq.controller.LoginController;
 import org.iclassq.controller.SubGruposController;
 import org.iclassq.controller.IdentificationController;
 import org.iclassq.model.domain.SessionData;
-import org.iclassq.view.GruposView;
-import org.iclassq.view.LoginView;
-import org.iclassq.view.SubGruposView;
-import org.iclassq.view.IdentificationView;
+import org.iclassq.model.dto.response.TicketResponseDTO;
+import org.iclassq.view.*;
 
 import java.util.Stack;
 
@@ -88,5 +88,19 @@ public class Navigator {
         SubGruposView view = new SubGruposView();
         new SubGruposController(view);
         navigateTo(view.getRoot());
+    }
+
+    public static void navigatoToTicket(TicketResponseDTO ticket) {
+        TicketView view = new TicketView(ticket);
+
+        view.setOnCerrar(() -> {
+            navigateToIdentification();
+        });
+
+        navigateTo(view.getRoot());
+
+        PauseTransition delay = new PauseTransition(Duration.seconds(5));
+        delay.setOnFinished(evt -> navigateToIdentification());
+        delay.play();
     }
 }

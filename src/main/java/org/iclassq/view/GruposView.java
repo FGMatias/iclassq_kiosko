@@ -90,7 +90,7 @@ public class GruposView {
         return footer;
     }
 
-    public void setGrupos(List<GrupoDTO> groups) {
+    public void setGroups(List<GrupoDTO> groups) {
         if (groupsGrid != null) {
             root.getStyleClass().remove(groups);
         }
