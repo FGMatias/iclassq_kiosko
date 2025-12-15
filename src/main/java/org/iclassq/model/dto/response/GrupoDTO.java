@@ -13,5 +13,4 @@ public class GrupoDTO {
     private Integer id;
     private String nombre;
     private String prefijo;
-    private String descripcion;
 }

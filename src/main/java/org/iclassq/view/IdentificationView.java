@@ -106,8 +106,6 @@ public class IdentificationView extends StackPane {
         documentNumber.setPromptText("Ingrese su número de documento");
         documentNumber.setPrefHeight(60);
         documentNumber.setFont(Fonts.regular(30));
-        documentNumber.setEditable(false);
-        documentNumber.setFocusTraversable(false);
         documentNumber.getStyleClass().addAll(Styles.LARGE, Styles.BG_DEFAULT);
         documentNumber.setStyle("-fx-alignment: center;");
 
@@ -144,7 +142,7 @@ public class IdentificationView extends StackPane {
         btnNext.setPrefHeight(80);
         btnNext.setMaxWidth(Double.MAX_VALUE);
         btnNext.setFont(Fonts.bold(24));
-        btnNext.getStyleClass().addAll(Styles.LARGE, Styles.ACCENT);
+        btnNext.getStyleClass().addAll(Styles.LARGE, Styles.SUCCESS);
         btnNext.setStyle("-fx-background-radius: 10px;");
 
         rightPanel.getChildren().addAll(keypadTitle, keypad, btnNext);

@@ -13,6 +13,7 @@ import org.iclassq.navigation.Navigator;
 import org.iclassq.util.Fonts;
 import org.iclassq.view.components.CardButton;
 import org.iclassq.view.components.Grid;
+import org.iclassq.view.components.Pagination;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,8 +21,10 @@ import java.util.function.Consumer;
 
 public class GruposView {
     private final BorderPane root;
-    private Grid gruposGrid;
-    private Consumer<GrupoDTO> onGrupoSelected;
+    private Grid groupsGrid;
+    private Pagination pagination;
+    private Consumer<GrupoDTO> onGroupSelected;
+    private List<GrupoDTO> allGroups;
 
     public GruposView() {
         root = buildContent();
@@ -65,7 +68,7 @@ public class GruposView {
         footer.setPadding(new Insets(40, 0, 0, 0));
 
         Button btnRegresar = new Button("REGRESAR");
-        btnRegresar.getStyleClass().addAll(Styles.ACCENT, Styles.BUTTON_OUTLINED);
+        btnRegresar.getStyleClass().addAll(Styles.DANGER);
         btnRegresar.setPrefWidth(220);
         btnRegresar.setPrefHeight(80);
         btnRegresar.setFont(Fonts.bold(20));
@@ -74,47 +77,64 @@ public class GruposView {
                 "-fx-background-radius: 8;" +
                 "-fx-border-radius: 8;"
         );
-        btnRegresar.setOnAction(e -> handleRegresar());
+        btnRegresar.setOnAction(e -> handleBack());
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label paginacion = new Label("Página 1 de 1");
-        paginacion.setFont(Fonts.bold(18));
-        paginacion.getStyleClass().add(Styles.TEXT_MUTED);
+        pagination = new Pagination();
+        pagination.setOnPageChange(this::handlePageChange);
 
-        footer.getChildren().addAll(btnRegresar, spacer, paginacion);
+        footer.getChildren().addAll(btnRegresar, spacer, pagination);
 
         return footer;
     }
 
-    public void setGrupos(List<GrupoDTO> grupos) {
-        if (gruposGrid != null) {
-            root.getStyleClass().remove(grupos);
+    public void setGrupos(List<GrupoDTO> groups) {
+        if (groupsGrid != null) {
+            root.getStyleClass().remove(groups);
         }
 
-        if (grupos == null || grupos.isEmpty()) {
+        if (groups == null || groups.isEmpty()) {
             Label emptyLabel = new Label("No hay grupos disponibles");
             emptyLabel.setFont(Fonts.regular(20));
             emptyLabel.getStyleClass().add(Styles.TEXT_MUTED);
             root.setCenter(emptyLabel);
+            pagination.setTotalElements(0);
             return;
         }
 
+        allGroups = groups;
+
+        pagination.setTotalElements(groups.size());
+
+        showCurrentPage();
+    }
+
+    private void showCurrentPage() {
+        if (allGroups == null || allGroups.isEmpty()) {
+            return;
+        }
+
+        int startIndex = pagination.getStartIndex();
+        int endIndex = pagination.getEndIndex();
+
+        List<GrupoDTO> groupsPage = allGroups.subList(startIndex, endIndex);
+
         List<CardButton> buttons = new ArrayList<>();
-        for (GrupoDTO grupo : grupos) {
-            CardButton button = new CardButton(grupo.getNombre());
+        for (GrupoDTO group : groupsPage) {
+            CardButton button = new CardButton(group.getNombre());
 
             button.setOnClick(() -> {
-                if (onGrupoSelected != null) {
-                    onGrupoSelected.accept(grupo);
+                if (onGroupSelected != null) {
+                    onGroupSelected.accept(group);
                 }
             });
 
             buttons.add(button);
         }
 
-        gruposGrid = new Grid(
+        groupsGrid = new Grid(
                 3,
                 2,
                 30,
@@ -123,30 +143,34 @@ public class GruposView {
                 buttons.toArray(new CardButton[0])
         );
 
-        root.setCenter(gruposGrid);
+        root.setCenter(groupsGrid);
     }
 
-    private void handleRegresar() {
+    private void handlePageChange(Integer pageNumer) {
+        showCurrentPage();
+    }
+
+    private void handleBack() {
         Navigator.navigateToIdentification();
     }
 
-    public void setOnGrupoSelected(Consumer<GrupoDTO> callback) {
-        this.onGrupoSelected = callback;
+    public void setOnGroupSelected(Consumer<GrupoDTO> callback) {
+        this.onGroupSelected = callback;
     }
 
     public BorderPane getRoot() {
         return root;
     }
 
-    public Grid getGruposGrid() {
-        return gruposGrid;
+    public Grid getGroupsGrid() {
+        return groupsGrid;
     }
 
-    public void setGruposGrid(Grid gruposGrid) {
-        this.gruposGrid = gruposGrid;
+    public void setGroupsGrid(Grid groupsGrid) {
+        this.groupsGrid = groupsGrid;
     }
 
-    public Consumer<GrupoDTO> getOnGrupoSelected() {
-        return onGrupoSelected;
+    public Consumer<GrupoDTO> getOnGroupSelected() {
+        return onGroupSelected;
     }
 }

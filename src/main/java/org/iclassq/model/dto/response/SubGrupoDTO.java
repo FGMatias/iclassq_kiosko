@@ -10,7 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SubGrupoDTO {
-    private Integer id;
-    private String nombre;
-    private String prefijo;
+    private Integer idSubgrupo;
+    private String vNombreSubGrupo;
+    private String vPrefijo;
 }

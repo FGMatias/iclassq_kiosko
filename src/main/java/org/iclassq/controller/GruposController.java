@@ -17,7 +17,7 @@ public class GruposController {
     public GruposController(GruposView view) {
         this.view = view;
         this.grupoService = ServiceFactory.getGrupoService();
-        view.setOnGrupoSelected(this::handleGrupoSelected);
+        view.setOnGroupSelected(this::handleGrupoSelected);
         loadGroups();
     }
 
@@ -25,9 +25,9 @@ public class GruposController {
         new Thread(() -> {
             try {
                 Integer rolEquipoId = SessionData.getInstance().getRolEquipoId();
-                List<GrupoDTO> grupos = grupoService.getAllByTime(rolEquipoId);
+                List<GrupoDTO> groups = grupoService.getAllByTime(rolEquipoId);
 
-                Platform.runLater(() -> view.setGrupos(grupos));
+                Platform.runLater(() -> view.setGrupos(groups));
             } catch (Exception e) {
                 e.printStackTrace();
             }

@@ -87,6 +87,6 @@ public class Navigator {
     public static void navigateToSubGroups() {
         SubGruposView view = new SubGruposView();
         new SubGruposController(view);
-//        navigateTo(view);
+        navigateTo(view.getRoot());
     }
 }
