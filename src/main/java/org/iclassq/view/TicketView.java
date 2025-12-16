@@ -8,19 +8,29 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import javafx.scene.text.TextAlignment;
+import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.response.TicketResponseDTO;
 import org.iclassq.util.Fonts;
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class TicketView {
     private final BorderPane root;
     private final TicketResponseDTO ticket;
-    private Runnable onCerrar;
+    private Button btnClose;
+    private Runnable onClose;
 
     public TicketView(TicketResponseDTO ticket) {
         this.ticket = ticket;
         root = buildContent();
+        setupEventHandlers();
+    }
+
+    private void setupEventHandlers() {
+        btnClose.setOnAction(evt -> {
+            if (onClose != null) onClose.run();
+        });
     }
 
     private BorderPane buildContent() {
@@ -39,26 +49,26 @@ public class TicketView {
     }
 
     private VBox createTicketCard() {
-        VBox card = new VBox(30);
+        VBox card = new VBox(20);
         card.setAlignment(Pos.CENTER);
-        card.setPadding(new Insets(60, 80, 60, 80));
+        card.setPadding(new Insets(40, 80, 40, 80));
         card.setMaxWidth(600);
+        card.getStyleClass().add(Styles.BG_DEFAULT);
         card.setStyle(
-                "-fx-background-color: -color-bg-default;" +
-                        "-fx-border-color: -color-accent-emphasis;" +
-                        "-fx-border-width: 3;" +
-                        "-fx-background-radius: 16;" +
-                        "-fx-border-radius: 16;" +
-                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 20, 0, 0, 8);"
+                "-fx-border-color: -color-accent-emphasis;" +
+                "-fx-border-width: 3;" +
+                "-fx-background-radius: 16;" +
+                "-fx-border-radius: 16;" +
+                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 20, 0, 0, 8);"
         );
 
         Label iconoExito = new Label("✓");
-        iconoExito.setFont(Fonts.bold(80));
+        iconoExito.setFont(Fonts.bold(50));
         iconoExito.setStyle(
                 "-fx-text-fill: -color-success-emphasis;" +
-                        "-fx-background-color: derive(-color-success-emphasis, 90%);" +
-                        "-fx-background-radius: 50%;" +
-                        "-fx-padding: 20;"
+                "-fx-background-color: derive(-color-success-emphasis, 90%);" +
+                "-fx-background-radius: 50%;" +
+                "-fx-padding: 20;"
         );
         iconoExito.setAlignment(Pos.CENTER);
         iconoExito.setMinSize(120, 120);
@@ -69,15 +79,28 @@ public class TicketView {
         lblTitulo.getStyleClass().add(Styles.SUCCESS);
         lblTitulo.setTextAlignment(TextAlignment.CENTER);
 
-        Label lblSubgrupo = new Label(ticket.getNombreSubgrupo().toUpperCase());
+        HBox datoDocumento =  new HBox(8);
+        datoDocumento.setAlignment(Pos.CENTER);
+
+        String tipoDocumento = SessionData.getInstance().getTipoDocumentoDescripcion();
+        Label tipoDocumentoLabel = new Label(tipoDocumento + ": ");
+        tipoDocumentoLabel.setFont(Fonts.bold(25));
+
+        String numeroDocumento = SessionData.getInstance().getNumeroDocumento();
+        Label numeroDocumentoLabel = new Label(numeroDocumento);
+        numeroDocumentoLabel.setFont(Fonts.bold(25));
+
+        datoDocumento.getChildren().addAll(tipoDocumentoLabel, numeroDocumentoLabel);
+
+        String grupo = SessionData.getInstance().getGrupo().getNombre();
+        Label lblSubgrupo = new Label(grupo);
         lblSubgrupo.setFont(Fonts.bold(28));
         lblSubgrupo.setWrapText(true);
         lblSubgrupo.setTextAlignment(TextAlignment.CENTER);
-        lblSubgrupo.setMaxWidth(500);
 
         Region separador1 = createSeparator();
 
-        VBox codigoContainer = new VBox(10);
+        VBox codigoContainer = new VBox(8);
         codigoContainer.setAlignment(Pos.CENTER);
 
         Label lblCodigoLabel = new Label("CÓDIGO:");
@@ -89,8 +112,8 @@ public class TicketView {
         lblCodigo.getStyleClass().add(Styles.ACCENT);
         lblCodigo.setStyle(
                 "-fx-background-color: derive(-color-accent-emphasis, 92%);" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-padding: 15 30 15 30;"
+                "-fx-background-radius: 12;" +
+                "-fx-padding: 15 30 15 30;"
         );
 
         codigoContainer.getChildren().addAll(lblCodigoLabel, lblCodigo);
@@ -98,15 +121,12 @@ public class TicketView {
         VBox infoContainer = new VBox(15);
         infoContainer.setAlignment(Pos.CENTER);
 
-        if (ticket.getFechaAtencion() != null) {
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-            String fechaStr = sdf.format(ticket.getFechaAtencion());
-
-            Label lblFecha = new Label("📅 " + fechaStr);
-            lblFecha.setFont(Fonts.regular(18));
-            lblFecha.getStyleClass().add(Styles.TEXT);
-            infoContainer.getChildren().add(lblFecha);
-        }
+        Date fecha = new Date(ticket.getFechaAtencion());
+        SimpleDateFormat fechaFormat = new SimpleDateFormat("yyyy-MM-dd");
+        Label lblFecha = new Label(fechaFormat.format(fecha));
+        lblFecha.setFont(Fonts.regular(18));
+        lblFecha.getStyleClass().add(Styles.TEXT);
+        infoContainer.getChildren().add(lblFecha);
 
         Region separador2 = createSeparator();
 
@@ -115,28 +135,27 @@ public class TicketView {
         lblMensaje.getStyleClass().add(Styles.TEXT_MUTED);
         lblMensaje.setTextAlignment(TextAlignment.CENTER);
 
-        Button btnFinalizar = new Button("FINALIZAR");
-        btnFinalizar.getStyleClass().addAll(Styles.ACCENT, Styles.LARGE);
-        btnFinalizar.setPrefWidth(250);
-        btnFinalizar.setPrefHeight(70);
-        btnFinalizar.setFont(Fonts.bold(20));
-        btnFinalizar.setCursor(Cursor.HAND);
-        btnFinalizar.setStyle(
+        btnClose = new Button("CERRAR");
+        btnClose.getStyleClass().addAll(Styles.DANGER, Styles.LARGE);
+        btnClose.setPrefWidth(250);
+        btnClose.setPrefHeight(70);
+        btnClose.setFont(Fonts.bold(20));
+        btnClose.setStyle(
                 "-fx-background-radius: 12;" +
-                        "-fx-border-radius: 12;"
+                "-fx-border-radius: 12;"
         );
-        btnFinalizar.setOnAction(e -> handleCerrar());
 
         card.getChildren().addAll(
                 iconoExito,
                 lblTitulo,
+                datoDocumento,
                 lblSubgrupo,
                 separador1,
                 codigoContainer,
                 infoContainer,
                 separador2,
                 lblMensaje,
-                btnFinalizar
+                btnClose
         );
 
         return card;
@@ -148,19 +167,13 @@ public class TicketView {
         separador.setMaxWidth(400);
         separador.setStyle(
                 "-fx-background-color: -color-border-default;" +
-                        "-fx-opacity: 0.5;"
+                "-fx-opacity: 0.3;"
         );
         return separador;
     }
 
-    private void handleCerrar() {
-        if (onCerrar != null) {
-            onCerrar.run();
-        }
-    }
-
-    public void setOnCerrar(Runnable callback) {
-        this.onCerrar = callback;
+    public void setOnClose(Runnable callback) {
+        this.onClose = callback;
     }
 
     public BorderPane getRoot() {

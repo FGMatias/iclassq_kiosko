@@ -93,7 +93,7 @@ public class Navigator {
     public static void navigatoToTicket(TicketResponseDTO ticket) {
         TicketView view = new TicketView(ticket);
 
-        view.setOnCerrar(() -> {
+        view.setOnClose(() -> {
             navigateToIdentification();
         });
 

@@ -48,7 +48,7 @@ public class SubGruposController {
 
         TicketRequestDTO request = new TicketRequestDTO();
         request.setIdSucursal(session.getSucursalId());
-        request.setIdSubgrupo(subGrupo.getIdSubgrupo());
+        request.setIdSubgrupo(subGrupo.getISubGrupo());
         request.setPrefijo(subGrupo.getVPrefijo());
         request.setNombre(subGrupo.getVNombreSubGrupo());
         request.setNumDoc(session.getNumeroDocumento());

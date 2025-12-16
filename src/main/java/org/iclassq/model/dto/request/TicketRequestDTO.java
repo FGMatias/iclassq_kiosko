@@ -15,5 +15,4 @@ public class TicketRequestDTO {
     private String numDoc;
     private Integer tipoDoc;
     private Integer validaDoc;
-    private String persona;
 }
