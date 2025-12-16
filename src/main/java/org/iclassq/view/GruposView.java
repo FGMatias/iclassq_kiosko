@@ -13,6 +13,7 @@ import org.iclassq.navigation.Navigator;
 import org.iclassq.util.Fonts;
 import org.iclassq.view.components.CardButton;
 import org.iclassq.view.components.Grid;
+import org.iclassq.view.components.Loading;
 import org.iclassq.view.components.Pagination;
 
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ public class GruposView {
     private Pagination pagination;
     private Consumer<GrupoDTO> onGroupSelected;
     private List<GrupoDTO> allGroups;
+    private Loading loading;
 
     public GruposView() {
         root = buildContent();
@@ -41,7 +43,11 @@ public class GruposView {
         container.setTop(header);
         container.setBottom(footer);
 
-        return container;
+        loading = new Loading("Cargando elementos...");
+
+        StackPane stackContainer = new StackPane(container, loading);
+
+        return new BorderPane(stackContainer);
     }
 
     private HBox createHeader() {
@@ -88,6 +94,22 @@ public class GruposView {
         footer.getChildren().addAll(btnRegresar, spacer, pagination);
 
         return footer;
+    }
+
+    public void showLoading() {
+        if (loading != null) {
+            loading.show();
+        }
+    }
+
+    public void hideLoading() {
+        if (loading != null) {
+            loading.hide();
+        }
+    }
+
+    public boolean isLoading() {
+        return loading != null && loading.isShowing();
     }
 
     public void setGroups(List<GrupoDTO> groups) {

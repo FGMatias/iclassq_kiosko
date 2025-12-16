@@ -23,5 +23,5 @@ public class TicketResponseDTO {
     private String prefijo;
     private String tipoIdentificacion;
     private Integer ticketSecuencia;
-    private Long fechaAtencion;
+    private String fechaAtencion;
 }

@@ -10,10 +10,8 @@ import javafx.scene.layout.*;
 import javafx.scene.text.TextAlignment;
 import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.response.TicketResponseDTO;
+import org.iclassq.util.DateFormatter;
 import org.iclassq.util.Fonts;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 public class TicketView {
     private final BorderPane root;
@@ -121,9 +119,8 @@ public class TicketView {
         VBox infoContainer = new VBox(15);
         infoContainer.setAlignment(Pos.CENTER);
 
-        Date fecha = new Date(ticket.getFechaAtencion());
-        SimpleDateFormat fechaFormat = new SimpleDateFormat("yyyy-MM-dd");
-        Label lblFecha = new Label(fechaFormat.format(fecha));
+        String fecha = DateFormatter.formatDate(ticket.getFechaAtencion());
+        Label lblFecha = new Label(fecha);
         lblFecha.setFont(Fonts.regular(18));
         lblFecha.getStyleClass().add(Styles.TEXT);
         infoContainer.getChildren().add(lblFecha);

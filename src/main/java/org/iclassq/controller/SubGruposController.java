@@ -12,13 +12,20 @@ import org.iclassq.service.TicketService;
 import org.iclassq.view.SubGruposView;
 import org.iclassq.view.components.Message;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
 public class SubGruposController {
     private final SubGruposView view;
     private final SubGrupoService subGrupoService;
     private final TicketService ticketService;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private Future<?> currentLoadTask;
+    private Future<?> currentGenerateTask;
     private final Logger logger = Logger.getLogger(SubGruposController.class.getName());
 
     public SubGruposController(SubGruposView view) {
@@ -30,20 +37,50 @@ public class SubGruposController {
     }
 
     private void loadSubGroups() {
-        new Thread(() -> {
+        if (currentLoadTask != null && !currentLoadTask.isDone()) {
+            currentLoadTask.cancel(true);
+        }
+
+        view.showLoading();
+
+        currentLoadTask = executor.submit(() -> {
             try {
-                Integer sucursalId = SessionData.getInstance().getSucursalId();
-                Integer grupoId = SessionData.getInstance().getGrupo().getId();
+                SessionData session = SessionData.getInstance();
+                Integer sucursalId = session.getSucursalId();
+                Integer grupoId = session.getGrupo().getId();
                 List<SubGrupoDTO> subGroups = subGrupoService.getByGrupo(sucursalId, grupoId);
 
-                Platform.runLater(() -> view.setSubGroups(subGroups));
+                Platform.runLater(() -> {
+                    view.hideLoading();
+                    view.setSubGroups(subGroups);
+                });
+            } catch (IOException e) {
+                logger.severe("Error de conexión al cargar los subgrupos" + e);
+                Platform.runLater(() -> {
+                    view.hideLoading();
+                    Message.showError(
+                            "Error de Conexión",
+                            "No se pudo conectar con el servidor. Verifique su conexión"
+                    );
+                });
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.severe("Error inesperado: " + e.getMessage());
+                Platform.runLater(() -> {
+                    view.hideLoading();
+                    Message.showError(
+                            "Error",
+                            "Ocurrió un error inesperado. Por favor intente nuevamente"
+                    );
+                });
             }
-        }).start();
+        });
     }
 
     private void handleSubGroupSelected(SubGrupoDTO subGrupo) {
+        if (currentGenerateTask != null && !currentGenerateTask.isDone()) {
+            currentGenerateTask.cancel(true);
+        }
+
         SessionData session = SessionData.getInstance();
 
         TicketRequestDTO request = new TicketRequestDTO();
@@ -55,25 +92,40 @@ public class SubGruposController {
         request.setTipoDoc(session.getTipoDocumento());
         request.setValidaDoc(0);
 
-        new Thread(() -> {
+        currentGenerateTask = executor.submit(() -> {
             try {
                 TicketResponseDTO ticket = ticketService.generateTicket(request);
 
                 Platform.runLater(() -> {
                     Navigator.navigatoToTicket(ticket);
                 });
-            } catch (Exception e) {
-                logger.severe("Error al generar ticket: " + e.getMessage());
-                e.printStackTrace();
-
+            } catch (IOException e) {
+                logger.severe("Error de conexión al generar el ticket: " + e.getMessage());
                 Platform.runLater(() -> {
                     Message.showError(
-                            "Error",
+                            "Error de Conexión",
+                            "No se pudo conectar con el servidor. Verifique su conexión"
+                    );
+                });
+            } catch (Exception e) {
+                logger.severe("Error inesperado al generar ticket: " + e.getMessage());
+                Platform.runLater(() -> {
+                    Message.showError(
+                            "Error Inesperado",
                             "No se pudo generar el ticket"
                     );
                 });
             }
-        }).start();
+        });
     }
 
+    public void shutdown() {
+        if (currentLoadTask != null && !currentLoadTask.isDone()) {
+            currentLoadTask.cancel(true);
+        }
+        if (currentGenerateTask != null && !currentGenerateTask.isDone()) {
+            currentGenerateTask.cancel(true);
+        }
+        executor.shutdown();
+    }
 }

@@ -6,16 +6,14 @@ import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
+import javafx.scene.layout.*;
 import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.response.SubGrupoDTO;
 import org.iclassq.navigation.Navigator;
 import org.iclassq.util.Fonts;
 import org.iclassq.view.components.CardButton;
 import org.iclassq.view.components.Grid;
+import org.iclassq.view.components.Loading;
 import org.iclassq.view.components.Pagination;
 
 import java.util.ArrayList;
@@ -26,6 +24,7 @@ public class SubGruposView {
     private final BorderPane root;
     private Grid subGroupsGrid;
     private Pagination pagination;
+    private Loading loading;
     private Consumer<SubGrupoDTO> onSubGroupSelected;
     private List<SubGrupoDTO> allSubGroups;
 
@@ -44,7 +43,11 @@ public class SubGruposView {
         container.setTop(header);
         container.setBottom(footer);
 
-        return container;
+        loading = new Loading("Cargando opciones...");
+
+        StackPane stackContainer = new StackPane(container, loading);
+
+        return new BorderPane(stackContainer);
     }
 
     private HBox createHeader() {
@@ -88,6 +91,22 @@ public class SubGruposView {
         footer.getChildren().addAll(btnRegresar, spacer, pagination);
 
         return footer;
+    }
+
+    public void showLoading() {
+        if (loading != null) {
+            loading.show();
+        }
+    }
+
+    public void hideLoading() {
+        if (loading != null) {
+            loading.hide();
+        }
+    }
+
+    public boolean isLoading() {
+        return loading != null && loading.isShowing();
     }
 
     private void handlePageChange(Integer pageNumer) {
