@@ -54,7 +54,7 @@ public class Pagination extends HBox {
 
     private Button createButton(String texto) {
         Button btn = new Button(texto);
-        btn.getStyleClass().addAll(Styles.ACCENT, Styles.BUTTON_OUTLINED);
+        btn.getStyleClass().addAll(Styles.ACCENT);
         btn.setPrefWidth(220);
         btn.setPrefHeight(80);
         btn.setFont(Fonts.bold(20));

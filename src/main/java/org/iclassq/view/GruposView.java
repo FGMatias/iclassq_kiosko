@@ -27,6 +27,7 @@ public class GruposView {
     private Consumer<GrupoDTO> onGroupSelected;
     private List<GrupoDTO> allGroups;
     private Loading loading;
+    private StackPane body;
 
     public GruposView() {
         root = buildContent();
@@ -43,11 +44,14 @@ public class GruposView {
         container.setTop(header);
         container.setBottom(footer);
 
+        body = new StackPane();
         loading = new Loading("Cargando elementos...");
+        loading.hide();
 
-        StackPane stackContainer = new StackPane(container, loading);
+        body.getChildren().add(loading);
+        container.setCenter(body);
 
-        return new BorderPane(stackContainer);
+        return container;
     }
 
     private HBox createHeader() {
@@ -99,12 +103,20 @@ public class GruposView {
     public void showLoading() {
         if (loading != null) {
             loading.show();
+
+            if (groupsGrid != null) {
+                groupsGrid.setVisible(false);
+            }
         }
     }
 
     public void hideLoading() {
         if (loading != null) {
             loading.hide();
+
+            if (groupsGrid != null) {
+                groupsGrid.setVisible(true);
+            }
         }
     }
 
@@ -121,15 +133,16 @@ public class GruposView {
             Label emptyLabel = new Label("No hay grupos disponibles");
             emptyLabel.setFont(Fonts.regular(20));
             emptyLabel.getStyleClass().add(Styles.TEXT_MUTED);
-            root.setCenter(emptyLabel);
+
+            body.getChildren().clear();
+            body.getChildren().addAll(emptyLabel, loading);
+
             pagination.setTotalElements(0);
             return;
         }
 
         allGroups = groups;
-
         pagination.setTotalElements(groups.size());
-
         showCurrentPage();
     }
 
@@ -165,7 +178,9 @@ public class GruposView {
                 buttons.toArray(new CardButton[0])
         );
 
-        root.setCenter(groupsGrid);
+        body.getChildren().clear();
+        body.getChildren().addAll(groupsGrid, loading);
+        loading.toFront();
     }
 
     private void handlePageChange(Integer pageNumer) {

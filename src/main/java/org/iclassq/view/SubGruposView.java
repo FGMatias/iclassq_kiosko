@@ -27,6 +27,7 @@ public class SubGruposView {
     private Loading loading;
     private Consumer<SubGrupoDTO> onSubGroupSelected;
     private List<SubGrupoDTO> allSubGroups;
+    private StackPane body;
 
     public SubGruposView() {
         root = buildContent();
@@ -43,11 +44,14 @@ public class SubGruposView {
         container.setTop(header);
         container.setBottom(footer);
 
+        body = new StackPane();
         loading = new Loading("Cargando opciones...");
+        loading.hide();
 
-        StackPane stackContainer = new StackPane(container, loading);
+        body.getChildren().add(loading);
+        container.setCenter(body);
 
-        return new BorderPane(stackContainer);
+        return container;
     }
 
     private HBox createHeader() {
@@ -96,12 +100,20 @@ public class SubGruposView {
     public void showLoading() {
         if (loading != null) {
             loading.show();
+
+            if (subGroupsGrid != null) {
+                subGroupsGrid.setVisible(false);
+            }
         }
     }
 
     public void hideLoading() {
         if (loading != null) {
             loading.hide();
+
+            if (subGroupsGrid != null) {
+                subGroupsGrid.setVisible(true);
+            }
         }
     }
 
@@ -126,15 +138,15 @@ public class SubGruposView {
             Label emptyLabel = new Label("No hay opciones disponibles");
             emptyLabel.setFont(Fonts.regular(20));
             emptyLabel.getStyleClass().add(Styles.TEXT_MUTED);
-            root.setCenter(emptyLabel);
+
+            body.getChildren().clear();
+            body.getChildren().addAll(emptyLabel, loading);
             pagination.setTotalElements(0);
             return;
         }
 
         allSubGroups = subGroups;
-
         pagination.setTotalElements(subGroups.size());
-
         showCurrentPage();
     }
 
@@ -170,7 +182,10 @@ public class SubGruposView {
                 buttons.toArray(new CardButton[0])
         );
 
-        root.setCenter(subGroupsGrid);
+        body.getChildren().clear();
+        body.getChildren().addAll(subGroupsGrid, loading);
+
+        loading.toFront();
     }
 
     public void setOnSubGroupSelected(Consumer<SubGrupoDTO> callback) {

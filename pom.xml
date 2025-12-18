@@ -65,6 +65,18 @@
             <artifactId>ikonli-material2-pack</artifactId>
             <version>12.4.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.13.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alphacephei</groupId>
+            <artifactId>vosk</artifactId>
+            <version>0.3.45</version>
+        </dependency>
     </dependencies>
 
     <build>
