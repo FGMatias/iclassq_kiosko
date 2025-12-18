@@ -1,7 +1,7 @@
-package org.iclassq.accesibility.voice;
+package org.iclassq.accessibility.voice;
 
-import org.iclassq.accesibility.voice.impl.SpeechToTextServiceImpl;
-import org.iclassq.accesibility.voice.impl.TextToSpeechServiceImpl;
+import org.iclassq.accessibility.voice.impl.SpeechToTextServiceImpl;
+import org.iclassq.accessibility.voice.impl.TextToSpeechServiceImpl;
 
 import java.util.function.Consumer;
 import java.util.logging.Level;

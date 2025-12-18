@@ -1,6 +1,5 @@
-package org.iclassq.accesibility.voice;
+package org.iclassq.accessibility.voice;
 
-import java.io.IOException;
 import java.util.function.Consumer;
 
 public interface SpeechToTextService {

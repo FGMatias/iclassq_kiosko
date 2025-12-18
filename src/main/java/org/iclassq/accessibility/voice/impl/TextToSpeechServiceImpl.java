@@ -1,7 +1,7 @@
-package org.iclassq.accesibility.voice.impl;
+package org.iclassq.accessibility.voice.impl;
 
 import com.sun.jna.Platform;
-import org.iclassq.accesibility.voice.TextToSpeechService;
+import org.iclassq.accessibility.voice.TextToSpeechService;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

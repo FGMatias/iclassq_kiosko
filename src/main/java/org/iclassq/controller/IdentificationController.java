@@ -3,13 +3,16 @@ package org.iclassq.controller;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import org.iclassq.config.ServiceFactory;
+import org.iclassq.controller.voice.IdentificationVoiceHelper;
 import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.response.TipoDocumentoDTO;
 import org.iclassq.navigation.Navigator;
 import org.iclassq.service.TipoDocumentoService;
+import org.iclassq.util.VoiceAssistant;
 import org.iclassq.view.IdentificationView;
 import org.iclassq.view.components.Message;
 
+import java.awt.event.ActionEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +24,9 @@ public class IdentificationController {
 
     private final Logger logger = Logger.getLogger(IdentificationController.class.getName());
     private Map<String, Integer> documentTypesMap = new HashMap<>();
+
+    private final VoiceAssistant voiceAssistant = new VoiceAssistant();
+    private final IdentificationVoiceHelper voiceHelper = new IdentificationVoiceHelper(voiceAssistant);
 
     public IdentificationController(IdentificationView view) {
         this.view = view;
@@ -45,6 +51,8 @@ public class IdentificationController {
                     if (!list.isEmpty()) {
                         handleTypeDocumentChange();
                     }
+
+                    setupVoiceCommands(list);
                 });
             } catch (Exception e) {
                 logger.severe(e.getMessage());
@@ -69,6 +77,7 @@ public class IdentificationController {
 
         if (tipoDocId != null) {
             view.updateDocumentConfig(tipoDocId);
+            voiceHelper.announceDocumentTypeSelected(tipoDocDescripcion);
         }
     }
 
@@ -81,10 +90,12 @@ public class IdentificationController {
                     "Tipo de documento requerido",
                     "Por favor seleccione un tipo de documento"
             );
+            voiceHelper.announceValidationError("Por favor seleccione un tipo de documento");
             return;
         }
 
         if (!view.isValid()) {
+            voiceHelper.announceValidationError("El documento ingresado no es válido");
             return;
         }
 
@@ -104,13 +115,18 @@ public class IdentificationController {
                         "Documento inválido",
                         view.getCurrentConfig().getLengthErrorMessage()
                 );
+                voiceHelper.announceValidationError(view.getCurrentConfig().getLengthErrorMessage());
                 return;
             }
         }
 
+        voiceHelper.announceNavigation();
+
         SessionData.getInstance().setTipoDocumento(tipoDocId);
         SessionData.getInstance().setTipoDocumentoDescripcion(tipoDocDescripcion);
         SessionData.getInstance().setNumeroDocumento(numeroDoc);
+
+        voiceAssistant.cleanup();
 
         Navigator.navigateToGroups();
     }
@@ -128,5 +144,31 @@ public class IdentificationController {
         if (!list.isEmpty()) {
             view.getTypeDocument().setValue(list.get(0).getDescripcion());
         }
+    }
+
+    private void setupVoiceCommands(List<TipoDocumentoDTO> list) {
+        if (!voiceAssistant.isEnabled()) {
+            return;
+        }
+
+        voiceHelper.announceDocumentTypes(list);
+        voiceHelper.registerDocumentTypeCommands(list, this::selectDocumentTypeByVoice);
+        voiceHelper.registerNumberInput(numbers -> {
+            String currentText = view.getDocumentNumber().getText();
+            view.getDocumentNumber().setText(currentText + numbers);
+        });
+        voiceHelper.registerNextCommand(() -> {
+            if (view.isValid()) {
+                handleNext();
+            } else {
+                voiceHelper.announceValidationError("Por favor completa todos los campos correctamente");
+            }
+        });
+    }
+
+    private void selectDocumentTypeByVoice(TipoDocumentoDTO docType) {
+        view.getTypeDocument().setValue(docType.getDescripcion());
+        voiceHelper.announceDocumentTypeSelected(docType.getDescripcion());
+        view.getDocumentNumber().requestFocus();
     }
 }

@@ -1,9 +1,7 @@
-package org.iclassq.accesibility.voice.impl;
+package org.iclassq.accessibility.voice.impl;
 
 
-import org.iclassq.accesibility.voice.SpeechToTextService;
-import org.vosk.LibVosk;
-import org.vosk.LogLevel;
+import org.iclassq.accessibility.voice.SpeechToTextService;
 import org.vosk.Model;
 import org.vosk.Recognizer;
 
@@ -11,7 +9,6 @@ import javax.sound.sampled.*;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;

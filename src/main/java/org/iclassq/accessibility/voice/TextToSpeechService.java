@@ -1,4 +1,4 @@
-package org.iclassq.accesibility.voice;
+package org.iclassq.accessibility.voice;
 
 public interface TextToSpeechService {
     void speak(String text);
