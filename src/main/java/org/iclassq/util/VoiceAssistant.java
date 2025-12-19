@@ -13,6 +13,7 @@ public class VoiceAssistant {
     private static final Logger logger = Logger.getLogger(VoiceAssistant.class.getName());
     private final VoiceManager voiceManager;
     private final Map<String, Runnable> commandHandlers = new HashMap<>();
+    private Consumer<String> numberHandler = null;
     private boolean enabled = false;
 
     public VoiceAssistant() {
@@ -60,12 +61,14 @@ public class VoiceAssistant {
     }
 
     public void onNumberRecognized(Consumer<String> handler) {
-        registerCommand("__NUMBERS__", () -> {});
-        commandHandlers.put("__NUMBERS__", () -> {});
+        if (!enabled) return;
+        this.numberHandler = handler;
+        logger.info("Handler de numeros registrado");
     }
 
     public void clearCommands() {
         commandHandlers.clear();
+        numberHandler = null;
     }
 
     public boolean isEnabled() {
@@ -79,6 +82,7 @@ public class VoiceAssistant {
             voiceManager.stopListening();
             voiceManager.clearListener();
             commandHandlers.clear();
+            numberHandler = null;
         } catch (Exception e) {
             logger.warning("Error en cleanup: " + e.getMessage());
         }
@@ -88,24 +92,32 @@ public class VoiceAssistant {
         if (text == null || text.isEmpty()) return;
 
         String normalized = normalizeText(text);
-        logger.info("Texto reconocido: " + text + " (normalizado: " + normalized + ")");
+        logger.info("Texto reconocido: '" + text + "' (normalizado: '" + normalized + "')");
 
+        boolean commandFound = false;
         for (Map.Entry<String, Runnable> entry : commandHandlers.entrySet()) {
             String keyword = entry.getKey();
 
-            if (keyword.equals("__NUMBERS__")) {
-                String numbers = extractNumbers(text);
-                if (!numbers.isEmpty()) {
-                    logger.info("Números extraídos: " + numbers);
-                }
-                continue;
-            }
-
             if (normalized.contains(keyword)) {
-                logger.info("Comando detectado: " + keyword);
+                logger.info("Comando detectado: '" + keyword + "'");
                 Platform.runLater(entry.getValue());
+                commandFound = true;
                 return;
             }
+        }
+
+        if (!commandFound && numberHandler != null) {
+            String numbers = extractNumbers(text);
+            if (!numbers.isEmpty()) {
+                logger.info("Números extraídos: '" + numbers + "'");
+                String finalNumbers = numbers;
+                Platform.runLater(() -> numberHandler.accept(finalNumbers));
+                return;
+            }
+        }
+
+        if (!commandFound) {
+            logger.info("No se encontró comando ni números en: '" + normalized + "'");
         }
     }
 
