@@ -117,11 +117,15 @@ public class IdentificationVoiceHelper {
         StringBuilder keywords = new StringBuilder(descripcion);
 
         if (descripcion.contains("dni") || descripcion.contains("documento nacional")) {
-            keywords.append(",dni,de ene i,documento nacional");
+            keywords.append(",dni,de ene y,documento,documento nacional,de ne y, denny");
         } else if (descripcion.contains("pasaporte")) {
             keywords.append(",pasaporte");
         } else if (descripcion.contains("carnet") || descripcion.contains("extranjeria") || descripcion.contains("extranjería")) {
             keywords.append(",carnet,extranjeria,carnet de extranjeria");
+        } else if (descripcion.contains("ruc")) {
+            keywords.append(",ruc,r u c,erre u se, rock, ruck");
+        } else if (descripcion.contains("ptp")) {
+            keywords.append(",ptp,pe te pe,pepe,pe pe,pp");
         }
 
         return keywords.toString();

@@ -30,10 +30,13 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
     private String languageCode = "es-ES";
     private float confidenceThreshold = 0.5f;
     private boolean available = false;
+    private long totalBytesRead = 0;
+    private int waveFormAccepted = 0;
+    private int waveFormRejected = 0;
 
     public SpeechToTextServiceImpl() {
         this.executor = Executors.newSingleThreadExecutor(run -> {
-            Thread thread = new Thread("VoskSTT-Thread");
+            Thread thread = new Thread(run,"VoskSTT-Thread");
             thread.setDaemon(true);
             return thread;
         });
@@ -56,15 +59,7 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
 
             model = new Model(modelPath);
 
-            AudioFormat format = new AudioFormat(16000, 16, 1, true, false);
-            DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
-
-            if (!AudioSystem.isLineSupported(info)) {
-                throw new Exception("Formato de audio no soportado");
-            }
-
-            microphone = (TargetDataLine)  AudioSystem.getLine(info);
-            microphone.open(format);
+            initMicrophone();
 
             recognizer = new Recognizer(model, 16000);
 
@@ -78,6 +73,46 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
             logger.severe("Error al acceder al microfono: " + e.getMessage());
             throw new Exception("No se pudo acceder al microfono. " +
                     "Verifique que el microfono esté conectado y los permisos esten habilitados. " + e.getMessage());
+        }
+    }
+
+    private void initMicrophone() throws Exception {
+        try {
+            AudioFormat format = new AudioFormat(16000, 16, 1, true, false);
+            DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+
+            if (!AudioSystem.isLineSupported(info)) {
+                throw new Exception("Formato de audio no soportado");
+            }
+
+            logger.info("=== BUSCANDO MICRÓFONOS ===");
+            Mixer.Info[] mixers = AudioSystem.getMixerInfo();
+            for (Mixer.Info mixerInfo : mixers) {
+                Mixer mixer = AudioSystem.getMixer(mixerInfo);
+                Line.Info[] targetLineInfo = mixer.getTargetLineInfo();
+                if (targetLineInfo.length > 0) {
+                    logger.info("  - " + mixerInfo.getName());
+                }
+            }
+
+            microphone = (TargetDataLine) AudioSystem.getLine(info);
+
+            int bufferSize = 16000 * 2;
+            microphone.open(format, bufferSize);
+
+            logger.info("Micrófono abierto: " + microphone.getLineInfo());
+            logger.info("   Buffer size: " + microphone.getBufferSize() + " bytes");
+            logger.info("   Formato: " + microphone.getFormat());
+
+        } catch (LineUnavailableException e) {
+            logger.severe("❌ Error al acceder al micrófono: " + e.getMessage());
+
+            logger.severe("Posibles causas:");
+            logger.severe("  1. Otro programa está usando el micrófono (Discord, Zoom, Teams, etc.)");
+            logger.severe("  2. Permisos de Windows bloqueados");
+            logger.severe("  3. El micrófono no está conectado correctamente");
+
+            throw new Exception("No se pudo acceder al micrófono: " + e.getMessage());
         }
     }
 
@@ -123,28 +158,102 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
             return;
         }
 
+        try {
+            if (microphone != null && microphone.isOpen()) {
+                logger.info("Cerrando micrófono anterior para reiniciarlo...");
+                if (microphone.isActive()) {
+                    microphone.stop();
+                }
+                microphone.close();
+            }
+
+            logger.info("Reabriendo micrófono...");
+            initMicrophone();
+
+        } catch (Exception e) {
+            logger.severe("No se pudo reinicializar el micrófono: " + e.getMessage());
+            notifyError("No se pudo iniciar el micrófono: " + e.getMessage());
+            return;
+        }
+
         listening.set(true);
-        microphone.start();
+
+        try {
+            microphone.start();
+            Thread.sleep(300);
+
+            int available = microphone.available();
+
+            logger.info("Micrófono activo: " + microphone.isActive());
+            logger.info("Micrófono corriendo: " + microphone.isRunning());
+            logger.info("Bytes disponibles: " + available);
+
+            if (!microphone.isActive() && available == 0) {
+                logger.severe("El micrófono no está capturando audio");
+                listening.set(false);
+                notifyError("El micrófono no se pudo activar");
+                return;
+            }
+
+            if (!microphone.isActive()) {
+                logger.warning("isActive() es false pero hay bytes disponibles");
+                logger.warning("   Esto es normal con Intel Smart Sound Technology");
+                logger.warning("   El micrófono debería funcionar de todas formas");
+            }
+
+            logger.info("Micrófono listo para capturar audio");
+
+        } catch (Exception e) {
+            logger.severe("Error al iniciar micrófono: " + e.getMessage());
+            e.printStackTrace();
+            listening.set(false);
+            notifyError("Error al iniciar el micrófono: " + e.getMessage());
+            return;
+        }
 
         executor.submit(this::listenLoop);
+        logger.info("Thread de escucha enviado al executor");
+        logger.info("   Executor shutdown: " + executor.isShutdown());
+        logger.info("   Executor terminated: " + executor.isTerminated());
         logger.info("Iniciando escucha de voz...");
     }
 
     private void listenLoop() {
+        logger.info("ListenLoop iniciado");
         byte[] buffer = new byte[4096];
+        int iterationCount = 0;
+        long lastLogTime = System.currentTimeMillis();
 
         while (listening.get()) {
             try {
                 int bytesRead = microphone.read(buffer, 0, buffer.length);
 
+                iterationCount++;
+                totalBytesRead += bytesRead;
+
+                if (System.currentTimeMillis() - lastLogTime > 5000) {
+                    logger.info(String.format(
+                            "📊 Stats: iterations=%d, totalBytes=%d, accepted=%d, rejected=%d",
+                            iterationCount, totalBytesRead, waveFormAccepted, waveFormRejected
+                    ));
+                    lastLogTime = System.currentTimeMillis();
+                }
+
                 if (bytesRead > 0) {
                     if (recognizer.acceptWaveForm(buffer, bytesRead)) {
+                        waveFormAccepted++;
                         String result = recognizer.getResult();
+                        logger.info("Wave form accepted, result: " + result);
                         processResult(result);
                     } else {
+                        waveFormRejected++;
                         String partialResult = recognizer.getPartialResult();
-                        logger.fine("Parcial: " + partialResult);
+                        if (partialResult != null && !partialResult.contains("\"partial\" : \"\"")) {
+                            logger.info("Partial: " + partialResult);
+                        }
                     }
+                } else {
+                    logger.warning("bytesRead = 0, el micrófono no está capturando audio");
                 }
             } catch (Exception e) {
                 if (listening.get()) {
@@ -153,6 +262,7 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
                 }
             }
         }
+        logger.info("ListenLoop terminado");
     }
 
     private void processResult(String jsonResult) {
@@ -265,6 +375,7 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
     }
 
     private void notifyTextRecognized(String text) {
+        logger.info("Notificando a " + textListeners.size() + " listeners: " + text);
         for (Consumer<String> listener : new ArrayList<>(textListeners)) {
             try {
                 listener.accept(text);
