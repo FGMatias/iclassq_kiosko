@@ -1,10 +1,10 @@
-package org.iclassq.util;
+package org.iclassq.util.voice;
 
 import javafx.application.Platform;
 import org.iclassq.accessibility.voice.VoiceManager;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.reflect.Array;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
@@ -26,9 +26,7 @@ public class VoiceAssistant {
             if (voiceManager != null && voiceManager.isVoiceServicesEnabled()) {
                 enabled = true;
                 voiceManager.startListening();
-
                 voiceManager.addTextRecognizedListener(this::handleRecognizedText);
-
                 logger.info("VoiceAssistant activado");
             } else {
                 logger.info("VoiceAssistant desactivado (VoiceManager no disponible)");
@@ -51,6 +49,17 @@ public class VoiceAssistant {
         }
     }
 
+    public void stopSpeaking() {
+        if (!enabled) return;
+
+        try {
+            voiceManager.stopSpeaking();
+            logger.info("TTS detenido");
+        } catch (Exception e) {
+            logger.warning("Error al detener TTS: " + e.getMessage());
+        }
+    }
+
     public void registerCommand(String keywords, Runnable action) {
         if (!enabled) return;
 
@@ -58,6 +67,42 @@ public class VoiceAssistant {
         for (String keyword : keywordArray) {
             commandHandlers.put(keyword.trim(), action);
         }
+    }
+
+    public void enableGrammar() {
+        if (!enabled || commandHandlers.isEmpty()) return;
+
+        Set<String> allWords = new LinkedHashSet<>();
+
+        for (String keyword : commandHandlers.keySet()) {
+            String[] words = keyword.split("\\s+");
+            for (String word : words) {
+                if (word.length() >= 2) {
+                    allWords.add(word.trim());
+                }
+            }
+
+            allWords.add(keyword.trim());
+        }
+
+        if (numberHandler != null) {
+            allWords.addAll(Arrays.asList(
+                    "cero", "uno", "dos", "tres", "cuartro", "cinco",
+                    "seis", "siete", "ocho", "nueve"
+            ));
+        }
+
+        List<String> wordList = new ArrayList<>(allWords);
+        voiceManager.setExpectedWords(wordList);
+
+        logger.info("GRAMATICA ACTIVADA - Vosk solo reconocera entre " + wordList.size() + " palabras");
+    }
+
+    public void disableGrammar() {
+        if (!enabled) return;
+
+        voiceManager.clearExpectedWords();
+        logger.info("GRAMATICA DESACTIVADA - reconocimiento general");
     }
 
     public void onNumberRecognized(Consumer<String> handler) {
@@ -69,6 +114,7 @@ public class VoiceAssistant {
     public void clearCommands() {
         commandHandlers.clear();
         numberHandler = null;
+        disableGrammar();
     }
 
     public boolean isEnabled() {
@@ -79,6 +125,7 @@ public class VoiceAssistant {
         if (!enabled) return;
 
         try {
+            disableGrammar();
             voiceManager.stopListening();
             voiceManager.clearListener();
             commandHandlers.clear();
@@ -109,7 +156,7 @@ public class VoiceAssistant {
         if (!commandFound && numberHandler != null) {
             String numbers = extractNumbers(text);
             if (!numbers.isEmpty()) {
-                logger.info("Números extraídos: '" + numbers + "'");
+                logger.info("Numeros extraidos: '" + numbers + "'");
                 String finalNumbers = numbers;
                 Platform.runLater(() -> numberHandler.accept(finalNumbers));
                 return;
@@ -117,7 +164,7 @@ public class VoiceAssistant {
         }
 
         if (!commandFound) {
-            logger.info("No se encontró comando ni números en: '" + normalized + "'");
+            logger.info("No se encontro comando ni numeros en: '" + normalized + "'");
         }
     }
 

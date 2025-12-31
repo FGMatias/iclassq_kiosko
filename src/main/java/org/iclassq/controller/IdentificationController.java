@@ -1,18 +1,16 @@
 package org.iclassq.controller;
 
 import javafx.application.Platform;
-import javafx.scene.control.Alert;
 import org.iclassq.config.ServiceFactory;
 import org.iclassq.controller.voice.IdentificationVoiceHelper;
 import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.response.TipoDocumentoDTO;
 import org.iclassq.navigation.Navigator;
 import org.iclassq.service.TipoDocumentoService;
-import org.iclassq.util.VoiceAssistant;
+import org.iclassq.util.voice.VoiceAssistant;
 import org.iclassq.view.IdentificationView;
 import org.iclassq.view.components.Message;
 
-import java.awt.event.ActionEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,12 +25,15 @@ public class IdentificationController {
 
     private final VoiceAssistant voiceAssistant = new VoiceAssistant();
     private final IdentificationVoiceHelper voiceHelper = new IdentificationVoiceHelper(voiceAssistant);
+    private boolean isInitialLoad = true;
 
     public IdentificationController(IdentificationView view) {
         this.view = view;
         this.tipoDocumentoService = ServiceFactory.getTipoDocumentoService();
         view.setOnNext(this::handleNext);
         view.setOnTypeDocumentChange(this::handleTypeDocumentChange);
+        view.setOnDelete(this::handleDelete);
+        view.setOnDeleteAll(this::handleDeleteAll);
         loadDocumentTypes();
     }
 
@@ -48,11 +49,9 @@ public class IdentificationController {
                     populateDocumentTypes(list);
                     view.getTypeDocument().setDisable(false);
                     view.getBtnNext().setDisable(false);
-                    if (!list.isEmpty()) {
-                        handleTypeDocumentChange();
-                    }
 
                     setupVoiceCommands(list);
+                    isInitialLoad = false;
                 });
             } catch (Exception e) {
                 logger.severe(e.getMessage());
@@ -77,7 +76,10 @@ public class IdentificationController {
 
         if (tipoDocId != null) {
             view.updateDocumentConfig(tipoDocId);
-            voiceHelper.announceDocumentTypeSelected(tipoDocDescripcion);
+
+            if (!isInitialLoad) {
+                voiceHelper.announceDocumentTypeSelected(tipoDocDescripcion);
+            }
         }
     }
 
@@ -120,15 +122,30 @@ public class IdentificationController {
             }
         }
 
+        voiceAssistant.stopSpeaking();
         voiceHelper.announceNavigation();
 
         SessionData.getInstance().setTipoDocumento(tipoDocId);
         SessionData.getInstance().setTipoDocumentoDescripcion(tipoDocDescripcion);
         SessionData.getInstance().setNumeroDocumento(numeroDoc);
 
+        voiceAssistant.stopSpeaking();
         voiceAssistant.cleanup();
 
         Navigator.navigateToGroups();
+    }
+
+    private void handleDelete() {
+        String currentText = view.getDocumentNumber().getText();
+        if (!currentText.isEmpty()) {
+            view.getDocumentNumber().setText(currentText.substring(0, currentText.length() - 1));
+            voiceHelper.announcedDeleted();
+        }
+    }
+
+    private void handleDeleteAll() {
+        view.getDocumentNumber().clear();
+        voiceHelper.announceDeletedAll();
     }
 
     private void populateDocumentTypes(List<TipoDocumentoDTO> list) {
@@ -164,11 +181,14 @@ public class IdentificationController {
                 voiceHelper.announceValidationError("Por favor completa todos los campos correctamente");
             }
         });
+
+        voiceHelper.registerDeleteCommand(this::handleDelete);
+        voiceHelper.registerDeleteAllCommand(this::handleDeleteAll);
+        voiceAssistant.enableGrammar();
     }
 
     private void selectDocumentTypeByVoice(TipoDocumentoDTO docType) {
         view.getTypeDocument().setValue(docType.getDescripcion());
-        voiceHelper.announceDocumentTypeSelected(docType.getDescripcion());
         view.getDocumentNumber().requestFocus();
     }
 }

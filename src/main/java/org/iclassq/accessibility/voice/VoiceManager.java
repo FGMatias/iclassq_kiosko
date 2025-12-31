@@ -3,6 +3,7 @@ package org.iclassq.accessibility.voice;
 import org.iclassq.accessibility.voice.impl.SpeechToTextServiceImpl;
 import org.iclassq.accessibility.voice.impl.TextToSpeechServiceImpl;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -101,6 +102,20 @@ public class VoiceManager {
         logger.info("  Auto-hablar:         " + (autoSpeak ? "Activo" : "Inactivo"));
         logger.info("  Auto-escuchar:       " + (autoListen ? "Activo" : "Inactivo"));
         logger.info("═══════════════════════════════════════");
+    }
+
+    public void setExpectedWords(List<String> words) {
+        if (speechToTextService != null) {
+            speechToTextService.setExpectedWords(words);
+        } else {
+            logger.warning("No se puede configurar vocabulario: STT no disponible");
+        }
+    }
+
+    public void clearExpectedWords() {
+        if (speechToTextService != null) {
+            speechToTextService.clearExpectedWords();
+        }
     }
 
     public void speak(String text) {

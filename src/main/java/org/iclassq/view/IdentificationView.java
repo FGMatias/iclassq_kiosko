@@ -20,8 +20,11 @@ public class IdentificationView extends StackPane {
     private Label lengthIndicator;
     private Button btnNext;
     private Button btnDelete;
+    private Button btnDeleteAll;
 
     private Runnable onNext;
+    private Runnable onDelete;
+    private Runnable onDeleteAll;
     private Runnable onTypeDocumentChange;
 
     private DocumentTypeConfig currentConfig;
@@ -172,14 +175,14 @@ public class IdentificationView extends StackPane {
         Button btn0 = createKeypadButton("0");
         keypad.add(btn0, 1, 3);
 
-        Button btnClear = createKeypadButton("C");
-        btnClear.getStyleClass().add(Styles.DANGER);
-        btnClear.setOnAction(e -> {
+        btnDeleteAll = createKeypadButton("C");
+        btnDeleteAll.getStyleClass().add(Styles.DANGER);
+        btnDeleteAll.setOnAction(e -> {
             documentNumber.clear();
             updateLengthIndicator();
             hideInlineError();
         });
-        keypad.add(btnClear, 2, 3);
+        keypad.add(btnDeleteAll, 2, 3);
 
         for (int i = 0; i < 3; i++) {
             ColumnConstraints colConstraints = new ColumnConstraints();
@@ -332,16 +335,20 @@ public class IdentificationView extends StackPane {
     private void setupEventHandlers() {
         btnNext.setOnAction(e -> {
             if (onNext != null) {
-                if (isValid()) {
-                    onNext.run();
-                }
+                if (isValid()) onNext.run();
             }
         });
 
         typeDocument.setOnAction(e -> {
-            if (onTypeDocumentChange != null) {
-                onTypeDocumentChange.run();
-            }
+            if (onTypeDocumentChange != null) onTypeDocumentChange.run();
+        });
+
+        btnDelete.setOnAction(e -> {
+            if (onDelete != null) onDelete.run();
+        });
+
+        btnDeleteAll.setOnAction(e -> {
+            if (onDeleteAll != null) onDeleteAll.run();
         });
     }
 
@@ -361,12 +368,24 @@ public class IdentificationView extends StackPane {
         return btnDelete;
     }
 
+    public Button getBtnDeleteAll() {
+        return btnDeleteAll;
+    }
+
     public DocumentTypeConfig getCurrentConfig() {
         return currentConfig;
     }
 
     public void setOnNext(Runnable callback) {
         this.onNext = callback;
+    }
+
+    public void setOnDelete(Runnable callback) {
+        this.onDelete = callback;
+    }
+
+    public void setOnDeleteAll(Runnable callback) {
+        this.onDeleteAll = callback;
     }
 
     public void setOnTypeDocumentChange(Runnable callback) {

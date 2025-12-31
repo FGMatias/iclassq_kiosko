@@ -1,5 +1,6 @@
 package org.iclassq.accessibility.voice;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 public interface SpeechToTextService {
@@ -15,4 +16,6 @@ public interface SpeechToTextService {
     void shutdown();
     boolean isAvailable();
     void clearListeners();
+    void setExpectedWords(List<String> words);
+    void clearExpectedWords();
 }

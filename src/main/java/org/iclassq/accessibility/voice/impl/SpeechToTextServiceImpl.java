@@ -1,6 +1,5 @@
 package org.iclassq.accessibility.voice.impl;
 
-
 import org.iclassq.accessibility.voice.SpeechToTextService;
 import org.vosk.Model;
 import org.vosk.Recognizer;
@@ -16,6 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class SpeechToTextServiceImpl implements SpeechToTextService {
     private static final Logger logger = Logger.getLogger(SpeechToTextServiceImpl.class.getName());
@@ -33,6 +33,8 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
     private long totalBytesRead = 0;
     private int waveFormAccepted = 0;
     private int waveFormRejected = 0;
+
+    private String currentGrammar = null;
 
     public SpeechToTextServiceImpl() {
         this.executor = Executors.newSingleThreadExecutor(run -> {
@@ -58,9 +60,7 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
             logger.info("Cargando modelo desde: " + modelPath);
 
             model = new Model(modelPath);
-
             initMicrophone();
-
             recognizer = new Recognizer(model, 16000);
 
             available = true;
@@ -71,129 +71,148 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
                     "Verifique que el modelo esté en: " + MODEL_PATH, e);
         } catch (LineUnavailableException e) {
             logger.severe("Error al acceder al microfono: " + e.getMessage());
-            throw new Exception("No se pudo acceder al microfono. " +
-                    "Verifique que el microfono esté conectado y los permisos esten habilitados. " + e.getMessage());
+            throw new Exception("No se pudo acceder al microfono. Verifique que: " +
+                    "1. Otro programa está usando el micrófono, " +
+                    "2. Permisos de Windows bloqueados, " +
+                    "3. El micrófono no está conectado correctamente", e);
         }
     }
 
-    private void initMicrophone() throws Exception {
-        try {
-            AudioFormat format = new AudioFormat(16000, 16, 1, true, false);
-            DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
-
-            if (!AudioSystem.isLineSupported(info)) {
-                throw new Exception("Formato de audio no soportado");
-            }
-
-            logger.info("=== BUSCANDO MICRÓFONOS ===");
-            Mixer.Info[] mixers = AudioSystem.getMixerInfo();
-            for (Mixer.Info mixerInfo : mixers) {
-                Mixer mixer = AudioSystem.getMixer(mixerInfo);
-                Line.Info[] targetLineInfo = mixer.getTargetLineInfo();
-                if (targetLineInfo.length > 0) {
-                    logger.info("  - " + mixerInfo.getName());
-                }
-            }
-
-            microphone = (TargetDataLine) AudioSystem.getLine(info);
-
-            int bufferSize = 16000 * 2;
-            microphone.open(format, bufferSize);
-
-            logger.info("Micrófono abierto: " + microphone.getLineInfo());
-            logger.info("   Buffer size: " + microphone.getBufferSize() + " bytes");
-            logger.info("   Formato: " + microphone.getFormat());
-
-        } catch (LineUnavailableException e) {
-            logger.severe("❌ Error al acceder al micrófono: " + e.getMessage());
-
-            logger.severe("Posibles causas:");
-            logger.severe("  1. Otro programa está usando el micrófono (Discord, Zoom, Teams, etc.)");
-            logger.severe("  2. Permisos de Windows bloqueados");
-            logger.severe("  3. El micrófono no está conectado correctamente");
-
-            throw new Exception("No se pudo acceder al micrófono: " + e.getMessage());
+    @Override
+    public void setExpectedWords(List<String> words) {
+        if (model == null || words == null || words.isEmpty()) {
+            logger.warning("No se puede configurar gramática: model nulo o palabras vacías");
+            return;
         }
-    }
 
-    private String getModelPath() throws IOException {
         try {
-            java.net.URL resourceUrl = getClass().getClassLoader().getResource(MODEL_PATH);
-            if (resourceUrl != null) {
-                String path = resourceUrl.getPath();
-                if (path.startsWith("/") && path.contains(":")) {
-                    path = path.substring(1);
-                }
-                File modelDir = new File(path);
-                if (modelDir.exists() && modelDir.isDirectory()) {
-                    return modelDir.getAbsolutePath();
-                }
+            boolean wasListening = listening.get();
+
+            if (wasListening) {
+                logger.info("Deteniendo escucha para reconstruir recognizer con gramática...");
+                stopListening();
+
+                Thread.sleep(200);
             }
+
+            if (recognizer != null) {
+                recognizer.close();
+            }
+
+            String grammar = buildGrammarJson(words);
+            currentGrammar = grammar;
+
+            recognizer = new Recognizer(model, 16000);
+            recognizer.setGrammar(grammar);
+
+            logger.info("GRAMÁTICA CONFIGURADA con " + words.size() + " palabras:");
+            logger.info("   Palabras: " + words.stream().limit(10).collect(Collectors.joining(", ")));
+            if (words.size() > 10) {
+                logger.info("   ... y " + (words.size() - 10) + " más");
+            }
+
+            if (wasListening) {
+                logger.info("Reiniciando escucha con nueva gramática...");
+                startListening();
+            }
+
         } catch (Exception e) {
-            logger.warning("No se pudo cargar modelo desde resources: " + e.getMessage());
+            logger.severe("Error al configurar gramática: " + e.getMessage());
+            e.printStackTrace();
+
+            try {
+                if (recognizer != null) {
+                    recognizer.close();
+                }
+                recognizer = new Recognizer(model, 16000);
+                currentGrammar = null;
+            } catch (Exception ex) {
+                logger.severe("Error crítico al recrear recognizer: " + ex.getMessage());
+            }
+        }
+    }
+
+    @Override
+    public void clearExpectedWords() {
+        if (model == null) return;
+
+        try {
+            boolean wasListening = listening.get();
+
+            if (wasListening) {
+                logger.info("Deteniendo escucha para limpiar gramática...");
+                stopListening();
+                Thread.sleep(200);
+            }
+
+            if (recognizer != null) {
+                recognizer.close();
+            }
+            recognizer = new Recognizer(model, 16000);
+            currentGrammar = null;
+
+            logger.info("Gramática eliminada - reconocimiento general activado");
+
+            if (wasListening) {
+                logger.info("Reiniciando escucha sin gramática...");
+                startListening();
+            }
+
+        } catch (Exception e) {
+            logger.severe("Error al limpiar gramática: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private String buildGrammarJson(List<String> words) {
+        StringBuilder json = new StringBuilder("[");
+
+        for (int i = 0; i < words.size(); i++) {
+            json.append("\"").append(escapeJson(words.get(i))).append("\"");
+            if (i < words.size() - 1) {
+                json.append(",");
+            }
         }
 
-        File localModel = new File("src/main/resources/" + MODEL_PATH);
-        if (localModel.exists() && localModel.isDirectory()) {
-            return localModel.getAbsolutePath();
-        }
+        json.append("]");
+        return json.toString();
+    }
 
-        File workingModel = new File(MODEL_PATH);
-        if (workingModel.exists() && workingModel.isDirectory()) {
-            return workingModel.getAbsolutePath();
-        }
-
-        throw new IOException("Modelo Vosk no encontrado.");
+    private String escapeJson(String text) {
+        return text.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 
     @Override
     public void startListening() {
         if (!available) {
-            notifyError("Servicio de reconocimiento de voz no disponible");
+            logger.warning("No se puede iniciar escucha: servicio STT no disponible");
             return;
         }
 
         if (listening.get()) {
-            logger.warning("El servicio ya está escuchando");
+            logger.info("Ya esta escuchando");
             return;
         }
 
         try {
+            logger.info("Cerrando micrófono anterior para reiniciarlo...");
             if (microphone != null && microphone.isOpen()) {
-                logger.info("Cerrando micrófono anterior para reiniciarlo...");
-                if (microphone.isActive()) {
-                    microphone.stop();
-                }
+                microphone.stop();
                 microphone.close();
             }
 
             logger.info("Reabriendo micrófono...");
             initMicrophone();
 
-        } catch (Exception e) {
-            logger.severe("No se pudo reinicializar el micrófono: " + e.getMessage());
-            notifyError("No se pudo iniciar el micrófono: " + e.getMessage());
-            return;
-        }
-
-        listening.set(true);
-
-        try {
             microphone.start();
-            Thread.sleep(300);
-
-            int available = microphone.available();
 
             logger.info("Micrófono activo: " + microphone.isActive());
             logger.info("Micrófono corriendo: " + microphone.isRunning());
-            logger.info("Bytes disponibles: " + available);
-
-            if (!microphone.isActive() && available == 0) {
-                logger.severe("El micrófono no está capturando audio");
-                listening.set(false);
-                notifyError("El micrófono no se pudo activar");
-                return;
-            }
+            logger.info("Bytes disponibles: " + microphone.available());
 
             if (!microphone.isActive()) {
                 logger.warning("isActive() es false pero hay bytes disponibles");
@@ -201,10 +220,11 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
                 logger.warning("   El micrófono debería funcionar de todas formas");
             }
 
+            listening.set(true);
             logger.info("Micrófono listo para capturar audio");
 
         } catch (Exception e) {
-            logger.severe("Error al iniciar micrófono: " + e.getMessage());
+            logger.severe("Error al iniciar el micrófono: " + e.getMessage());
             e.printStackTrace();
             listening.set(false);
             notifyError("Error al iniciar el micrófono: " + e.getMessage());
@@ -233,7 +253,7 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
 
                 if (System.currentTimeMillis() - lastLogTime > 5000) {
                     logger.info(String.format(
-                            "📊 Stats: iterations=%d, totalBytes=%d, accepted=%d, rejected=%d",
+                            "Stats: iterations=%d, totalBytes=%d, accepted=%d, rejected=%d",
                             iterationCount, totalBytesRead, waveFormAccepted, waveFormRejected
                     ));
                     lastLogTime = System.currentTimeMillis();
@@ -252,58 +272,38 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
                             logger.info("Partial: " + partialResult);
                         }
                     }
-                } else {
-                    logger.warning("bytesRead = 0, el micrófono no está capturando audio");
                 }
+
             } catch (Exception e) {
                 if (listening.get()) {
-                    logger.severe("Error durante el reconocimiento de voz: " + e);
-                    notifyError("Error en el reconocimiento: " + e.getMessage());
+                    logger.severe("Error en loop de escucha: " + e.getMessage());
+                    notifyError("Error durante reconocimiento: " + e.getMessage());
                 }
+                break;
             }
         }
-        logger.info("ListenLoop terminado");
-    }
 
-    private void processResult(String jsonResult) {
-        try {
-            String text = extractTextFromJson(jsonResult);
-
-            if (text != null && !text.trim().isEmpty()) {
-                logger.info("Texto reconocido: " + text);
-                notifyTextRecognized(text);
-            }
-        } catch (Exception e) {
-            logger.severe("Error al procesar el resultado: " + e);
-        }
-    }
-
-    private String extractTextFromJson(String json) {
-        int textStart = json.indexOf("\"text\"");
-        if (textStart == -1) return null;
-
-        int colonPos = json.indexOf(":", textStart);
-        if (colonPos == -1) return null;
-
-        int quoteStart = json.indexOf("\"", colonPos);
-        if (quoteStart == -1) return null;
-
-        int quoteEnd = json.indexOf("\"", quoteStart + 1);
-        if (quoteEnd == -1) return null;
-
-        return json.substring(quoteStart + 1, quoteEnd).trim();
+        logger.info("Loop de escucha finalizado");
     }
 
     @Override
     public void stopListening() {
-        if (listening.get()) {
-            listening.set(false);
+        if (!listening.get()) {
+            return;
+        }
 
-            if (microphone != null && microphone.isActive()) {
-                microphone.stop();
-            }
+        listening.set(false);
+        logger.info("Deteniendo escucha...");
 
-            logger.info("Escucha de voz detenida");
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        if (microphone != null && microphone.isOpen()) {
+            microphone.stop();
+            logger.info("Micrófono detenido");
         }
     }
 
@@ -372,6 +372,92 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
         textListeners.clear();
         errorListeners.clear();
         logger.info("Listeners limpiados");
+    }
+
+    private void initMicrophone() throws LineUnavailableException {
+        AudioFormat format = new AudioFormat(16000, 16, 1, true, false);
+        DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+
+        logger.info("=== BUSCANDO MICRÓFONOS ===");
+        Mixer.Info[] mixerInfos = AudioSystem.getMixerInfo();
+        for (Mixer.Info mixerInfo : mixerInfos) {
+            logger.info("  - " + mixerInfo.getName());
+        }
+
+        if (!AudioSystem.isLineSupported(info)) {
+            throw new LineUnavailableException("Formato de audio no soportado");
+        }
+
+        microphone = (TargetDataLine) AudioSystem.getLine(info);
+        microphone.open(format, 32000);
+
+        logger.info("Micrófono abierto: " + microphone.getLineInfo());
+        logger.info("   Buffer size: " + microphone.getBufferSize() + " bytes");
+        logger.info("   Formato: " + microphone.getFormat());
+    }
+
+    private void processResult(String jsonResult) {
+        try {
+            String text = extractTextFromJson(jsonResult);
+
+            if (text != null && !text.trim().isEmpty()) {
+                logger.info("Texto reconocido: " + text);
+                notifyTextRecognized(text);
+            }
+        } catch (Exception e) {
+            logger.warning("Error al procesar resultado: " + e.getMessage());
+        }
+    }
+
+    private String extractTextFromJson(String json) {
+        if (json == null || json.isEmpty()) {
+            return "";
+        }
+
+        int textIndex = json.indexOf("\"text\"");
+        if (textIndex == -1) {
+            return "";
+        }
+
+        int colonIndex = json.indexOf(":", textIndex);
+        int quoteStart = json.indexOf("\"", colonIndex + 1);
+        int quoteEnd = json.indexOf("\"", quoteStart + 1);
+
+        if (quoteStart != -1 && quoteEnd != -1) {
+            return json.substring(quoteStart + 1, quoteEnd);
+        }
+
+        return "";
+    }
+
+    private String getModelPath() throws IOException {
+        try {
+            java.net.URL resourceUrl = getClass().getClassLoader().getResource(MODEL_PATH);
+            if (resourceUrl != null) {
+                String path = resourceUrl.getPath();
+                if (path.startsWith("/") && path.contains(":")) {
+                    path = path.substring(1);
+                }
+                File modelDir = new File(path);
+                if (modelDir.exists() && modelDir.isDirectory()) {
+                    return modelDir.getAbsolutePath();
+                }
+            }
+        } catch (Exception e) {
+            logger.warning("No se pudo cargar modelo desde resources: " + e.getMessage());
+        }
+
+        File localModel = new File("src/main/resources/" + MODEL_PATH);
+        if (localModel.exists() && localModel.isDirectory()) {
+            return localModel.getAbsolutePath();
+        }
+
+        File workingModel = new File(MODEL_PATH);
+        if (workingModel.exists() && workingModel.isDirectory()) {
+            return workingModel.getAbsolutePath();
+        }
+
+        throw new IOException("Modelo Vosk no encontrado.");
     }
 
     private void notifyTextRecognized(String text) {

@@ -1,7 +1,8 @@
 package org.iclassq.controller.voice;
 
 import org.iclassq.model.dto.response.TipoDocumentoDTO;
-import org.iclassq.util.VoiceAssistant;
+import org.iclassq.util.voice.KeywordGenerator;
+import org.iclassq.util.voice.VoiceAssistant;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -51,7 +52,7 @@ public class IdentificationVoiceHelper {
         for (TipoDocumentoDTO docType : documentTypes) {
             String descripcion = docType.getDescripcion().toLowerCase();
 
-            String keywords = generateKeywords(descripcion);
+            String keywords = KeywordGenerator.generateKeywords(descripcion);
 
             voiceAssistant.registerCommand(keywords, () -> {
                 onDocumentSelected.accept(docType);
@@ -105,6 +106,22 @@ public class IdentificationVoiceHelper {
         voiceAssistant.speak("Avanzando a la siguiente pantalla.");
     }
 
+    public void announcedDeleted() {
+        if (!voiceAssistant.isEnabled()) {
+            return;
+        }
+
+        voiceAssistant.speak("Carácter eliminado.");
+    }
+
+    public void announceDeletedAll() {
+        if (!voiceAssistant.isEnabled()) {
+            return;
+        }
+
+        voiceAssistant.speak("Campo limpiado.");
+    }
+
     public void registerNextCommand(Runnable onNext) {
         if (!voiceAssistant.isEnabled()) {
             return;
@@ -113,21 +130,19 @@ public class IdentificationVoiceHelper {
         voiceAssistant.registerCommand("siguiente,continuar,adelante", onNext);
     }
 
-    private String generateKeywords(String descripcion) {
-        StringBuilder keywords = new StringBuilder(descripcion);
-
-        if (descripcion.contains("dni") || descripcion.contains("documento nacional")) {
-            keywords.append(",dni,de ene y,documento,documento nacional,de ne y, denny");
-        } else if (descripcion.contains("pasaporte")) {
-            keywords.append(",pasaporte");
-        } else if (descripcion.contains("carnet") || descripcion.contains("extranjeria") || descripcion.contains("extranjería")) {
-            keywords.append(",carnet,extranjeria,carnet de extranjeria");
-        } else if (descripcion.contains("ruc")) {
-            keywords.append(",ruc,r u c,erre u se, rock, ruck");
-        } else if (descripcion.contains("ptp")) {
-            keywords.append(",ptp,pe te pe,pepe,pe pe,pp");
+    public void registerDeleteCommand(Runnable onDelete) {
+        if (!voiceAssistant.isEnabled()) {
+            return;
         }
 
-        return keywords.toString();
+        voiceAssistant.registerCommand("borrar,eliminar,quitar", onDelete);
+    }
+
+    public void registerDeleteAllCommand(Runnable onDeleteAll) {
+        if (!voiceAssistant.isEnabled()) {
+            return;
+        }
+
+        voiceAssistant.registerCommand("borrar todo,limpiar,limpiar todo,eliminar todo", onDeleteAll);
     }
 }
