@@ -8,49 +8,34 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class SubGruposVoiceHelper {
-
     private final VoiceAssistant voiceAssistant;
 
     public SubGruposVoiceHelper(VoiceAssistant voiceAssistant) {
         this.voiceAssistant = voiceAssistant;
     }
 
-    public void announceSubGroups(
-            String nombreGrupo,
-            List<SubGrupoDTO> subGroups,
-            int currentPage,
-            int totalPages
-    ) {
-        if (!voiceAssistant.isEnabled() || subGroups.isEmpty()) {
+    public void announceSubGroups(String groupName, List<SubGrupoDTO> subgrupos, int currentPage, int totalPages) {
+        if (!voiceAssistant.isEnabled() || subgrupos.isEmpty()) {
             return;
         }
 
         StringBuilder message = new StringBuilder();
 
-        message.append("Grupo seleccionado: ")
-                .append(nombreGrupo)
-                .append(". ");
-
-        message.append("Selecciona una opción. ");
+        message.append("Grupo seleccionado: ").append(groupName).append(". ");
+        message.append("Selecciona un servicio. ");
 
         if (totalPages > 1) {
-            message.append("Página ")
-                    .append(currentPage)
-                    .append(" de ")
-                    .append(totalPages)
-                    .append(". ");
+            message.append("Página ").append(currentPage).append(" de ").append(totalPages).append(". ");
         }
 
         message.append("Las opciones son: ");
 
-        for (int i = 0; i < subGroups.size(); i++) {
-            message.append(subGroups.get(i).getVNombreSubGrupo());
-            if (i < subGroups.size() - 1) {
+        for (int i = 0; i < subgrupos.size(); i++) {
+            message.append(subgrupos.get(i).getVNombreSubGrupo());
+            if (i < subgrupos.size() - 1) {
                 message.append(", ");
             }
         }
-
-        message.append(". También puedes usar el teclado para seleccionar una opción.");
 
         voiceAssistant.speak(message.toString());
     }
@@ -118,7 +103,7 @@ public class SubGruposVoiceHelper {
         }
     }
 
-    public void announceNavigatingBack() {
+    public void announceBack() {
         if (!voiceAssistant.isEnabled()) {
             return;
         }

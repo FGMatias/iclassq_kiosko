@@ -105,6 +105,14 @@ public class Pagination extends HBox {
         }
     }
 
+    public void nextPage() {
+        goNextPage();
+    }
+
+    public void previousPage() {
+        goPreviousPage();
+    }
+
     private void updatePaginationLabel() {
         lblPaginacion.setText("Página " + paginaActual + " de " + totalPaginas);
     }

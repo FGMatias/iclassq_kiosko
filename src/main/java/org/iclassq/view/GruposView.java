@@ -29,6 +29,10 @@ public class GruposView {
     private Loading loading;
     private StackPane body;
 
+    private Runnable onNextPage;
+    private Runnable onPreviousPage;
+    private Runnable onBack;
+
     public GruposView() {
         root = buildContent();
     }
@@ -184,15 +188,59 @@ public class GruposView {
     }
 
     private void handlePageChange(Integer pageNumer) {
+        int previousPage = pagination.getPaginaActual();
+
         showCurrentPage();
+
+        if (pageNumer > previousPage && onNextPage != null) {
+            onNextPage.run();
+        } else {
+            onPreviousPage.run();
+        }
     }
 
     private void handleBack() {
-        Navigator.navigateToIdentification();
+        if (onBack != null) {
+            onBack.run();
+        } else {
+            Navigator.navigateToIdentification();
+        }
     }
 
     public void setOnGroupSelected(Consumer<GrupoDTO> callback) {
         this.onGroupSelected = callback;
+    }
+
+    public void setOnNextPage(Runnable callback) {
+        this.onNextPage = callback;
+    }
+
+    public void setOnPreviousPage(Runnable callback) {
+        this.onPreviousPage = callback;
+    }
+
+    public void setOnBack(Runnable callback) {
+        this.onBack = callback;
+    }
+
+    public void goToNextPage() {
+        if (pagination != null && pagination.getPaginaActual() < pagination.getTotalPaginas()) {
+            pagination.nextPage();
+        }
+    }
+
+    public void goToPreviousPage() {
+        if (pagination != null && pagination.getPaginaActual() > 1) {
+            pagination.previousPage();
+        }
+    }
+
+    public int getCurrentPage() {
+        return pagination != null ? pagination.getPaginaActual() : 1;
+    }
+
+    public int getTotalPages() {
+        return pagination != null ? pagination.getTotalPaginas() : 1;
     }
 
     public BorderPane getRoot() {

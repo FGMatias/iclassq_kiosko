@@ -34,6 +34,7 @@ public class SubGruposController {
     private final VoiceAssistant voiceAssistant = new VoiceAssistant();
     private final SubGruposVoiceHelper voiceHelper = new SubGruposVoiceHelper(voiceAssistant);
     private final TicketVoiceHelper ticketVoiceHelper = new TicketVoiceHelper(voiceAssistant);
+    private boolean isInitialLoad = true;
 
     private List<SubGrupoDTO> allSubGroups;
 
@@ -41,8 +42,11 @@ public class SubGruposController {
         this.view = view;
         this.subGrupoService = ServiceFactory.getSubGrupoService();
         this.ticketService = ServiceFactory.getTicketService();
+
         view.setOnSubGroupSelected(this::handleSubGroupSelected);
-        voiceHelper.registerBackCommand(this::handleBack);
+        view.setOnNextPage(this::handleNextPage);
+        view.setOnPreviousPage(this::handlePreviousPage);
+        view.setOnBack(this::handleBack);
         loadSubGroups();
     }
 
@@ -66,6 +70,7 @@ public class SubGruposController {
 
                     this.allSubGroups = subGroups;
                     setupVoiceCommands(subGroups);
+                    isInitialLoad = false;
                 });
             } catch (IOException e) {
                 logger.severe("Error de conexión al cargar los subgrupos" + e);
@@ -90,63 +95,29 @@ public class SubGruposController {
     }
 
     private void setupVoiceCommands(List<SubGrupoDTO> subGroups) {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isEnabled() || subGroups == null || subGroups.isEmpty()) {
             return;
         }
 
         String nombreGrupo = SessionData.getInstance().getGrupo().getNombre();
 
-        voiceHelper.announceSubGroups(nombreGrupo, subGroups);
+        if (!isInitialLoad) {
+            int currentPage = view.getCurrentPage();
+            int totalPages = view.getTotalPages();
+            voiceHelper.announceSubGroups(nombreGrupo, subGroups, currentPage, totalPages);
+        }
+
         voiceHelper.registerSubGroupCommands(subGroups, this::selectSubGroupByVoice);
+        voiceHelper.registerPreviousPageCommand(this::handlePreviousPageVoice);
+        voiceHelper.registerNextPageCommand(this::handleNextPageVoice);
+        voiceHelper.registerBackCommand(this::handleBackVoice);
+        voiceAssistant.enableGrammar();
     }
 
     private void selectSubGroupByVoice(SubGrupoDTO subGrupo) {
         voiceHelper.announceSubGroupSelected(subGrupo.getVNombreSubGrupo());
         handleSubGroupSelected(subGrupo);
     }
-
-//    private void handleSubGroupSelected(SubGrupoDTO subGrupo) {
-//        if (currentGenerateTask != null && !currentGenerateTask.isDone()) {
-//            currentGenerateTask.cancel(true);
-//        }
-//
-//        SessionData session = SessionData.getInstance();
-//
-//        TicketRequestDTO request = new TicketRequestDTO();
-//        request.setIdSucursal(session.getSucursalId());
-//        request.setIdSubgrupo(subGrupo.getISubGrupo());
-//        request.setPrefijo(subGrupo.getVPrefijo());
-//        request.setNombre(subGrupo.getVNombreSubGrupo());
-//        request.setNumDoc(session.getNumeroDocumento());
-//        request.setTipoDoc(session.getTipoDocumento());
-//        request.setValidaDoc(0);
-//
-//        currentGenerateTask = executor.submit(() -> {
-//            try {
-//                TicketResponseDTO ticket = ticketService.generateTicket(request);
-//
-//                Platform.runLater(() -> {
-//                    Navigator.navigatoToTicket(ticket);
-//                });
-//            } catch (IOException e) {
-//                logger.severe("Error de conexión al generar el ticket: " + e.getMessage());
-//                Platform.runLater(() -> {
-//                    Message.showError(
-//                            "Error de Conexión",
-//                            "No se pudo conectar con el servidor. Verifique su conexión"
-//                    );
-//                });
-//            } catch (Exception e) {
-//                logger.severe("Error inesperado al generar ticket: " + e.getMessage());
-//                Platform.runLater(() -> {
-//                    Message.showError(
-//                            "Error Inesperado",
-//                            "No se pudo generar el ticket"
-//                    );
-//                });
-//            }
-//        });
-//    }
 
     private void handleSubGroupSelected(SubGrupoDTO subGrupo) {
         if (currentGenerateTask != null && !currentGenerateTask.isDone()) {
@@ -207,10 +178,29 @@ public class SubGruposController {
         return request;
     }
 
+    private void handleNextPage() {
+        voiceHelper.announcePageChanged(view.getCurrentPage(), view.getTotalPages());
+    }
+
+    private void handlePreviousPage() {
+        voiceHelper.announcePageChanged(view.getCurrentPage(), view.getTotalPages());
+    }
+
+    private void handleNextPageVoice() {
+        view.goToNextPage();
+    }
+
+    private void handlePreviousPageVoice() {
+        view.goToPreviousPage();
+    }
+
     private void handleBack() {
+        handleBackVoice();
+    }
+
+    private void handleBackVoice() {
         voiceAssistant.stopSpeaking();
         voiceHelper.announceBack();
-        voiceAssistant.stopSpeaking();
         voiceAssistant.cleanup();
         Navigator.navigateToGroups();
     }

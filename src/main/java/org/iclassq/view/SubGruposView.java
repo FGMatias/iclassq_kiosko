@@ -29,6 +29,10 @@ public class SubGruposView {
     private List<SubGrupoDTO> allSubGroups;
     private StackPane body;
 
+    private Runnable onNextPage;
+    private Runnable onPreviousPage;
+    private Runnable onBack;
+
     public SubGruposView() {
         root = buildContent();
     }
@@ -122,11 +126,23 @@ public class SubGruposView {
     }
 
     private void handlePageChange(Integer pageNumer) {
+        int previousPage = pagination.getPaginaActual();
+
         showCurrentPage();
+
+        if (pageNumer > previousPage && onNextPage != null) {
+            onNextPage.run();
+        } else if (pageNumer < previousPage && onPreviousPage != null) {
+            onPreviousPage.run();
+        }
     }
 
     private void handleBack() {
-        Navigator.navigateToIdentification();
+        if (onBack != null) {
+            onBack.run();
+        } else {
+            Navigator.navigateToIdentification();
+        }
     }
 
     public void setSubGroups(List<SubGrupoDTO> subGroups) {
@@ -190,6 +206,41 @@ public class SubGruposView {
 
     public void setOnSubGroupSelected(Consumer<SubGrupoDTO> callback) {
         this.onSubGroupSelected = callback;
+    }
+
+    public void setOnNextPage(Runnable callback) {
+        this.onNextPage = callback;
+    }
+
+    public void setOnPreviousPage(Runnable callback) {
+        this.onPreviousPage = callback;
+    }
+
+    public void setOnBack(Runnable callback) {
+        this.onBack = callback;
+    }
+
+    public void goToNextPage() {
+        if (pagination != null && pagination.getPaginaActual() < pagination.getTotalPaginas()) {
+            pagination.nextPage();
+        }
+    }
+
+    public void goToPreviousPage() {
+        if (pagination != null && pagination.getPaginaActual() > 1) {
+            pagination.previousPage();
+        }
+    }
+
+    public int getCurrentPage() {
+        return pagination != null ? pagination.getPaginaActual() : 1;
+    }
+
+    public int getTotalPages() {
+        return pagination != null ? pagination.getTotalPaginas() : 1;
+    }
+
+    public void updatePaginationButtons(int currentPage, int totalPages) {
     }
 
     public BorderPane getRoot() {

@@ -27,14 +27,18 @@ public class GruposController {
 
     private final VoiceAssistant voiceAssistant = new VoiceAssistant();
     private final GruposVoiceHelper voiceHelper = new GruposVoiceHelper(voiceAssistant);
+    private boolean isInitialLoad = true;
 
     private List<GrupoDTO> allGroups;
 
     public GruposController(GruposView view) {
         this.view = view;
         this.grupoService = ServiceFactory.getGrupoService();
+
         view.setOnGroupSelected(this::handleGrupoSelected);
-        voiceHelper.registerBackCommand(this::handleBack);
+        view.setOnNextPage(this::handleNextPage);
+        view.setOnPreviousPage(this::handlePreviousPage);
+        view.setOnBack(this::handleBack);
         loadGroups();
     }
 
@@ -58,6 +62,7 @@ public class GruposController {
 
                     this.allGroups = groups;
                     setupVoiceCommands(groups);
+                    isInitialLoad = false;
                 });
 
             } catch (IOException e) {
@@ -85,14 +90,23 @@ public class GruposController {
     }
 
     private void setupVoiceCommands(List<GrupoDTO> groups) {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isEnabled() || groups == null || groups.isEmpty()) {
             return;
         }
 
         String numeroDocumento = SessionData.getInstance().getNumeroDocumento();
 
-        voiceHelper.announceGroups(numeroDocumento, groups);
+        if (!isInitialLoad) {
+            int currentPage = view.getCurrentPage();
+            int totalPages = view.getTotalPages();
+            voiceHelper.announceGroups(numeroDocumento, groups, currentPage, totalPages);
+        }
+
         voiceHelper.registerGroupCommands(groups, this::selectGroupByVoice);
+        voiceHelper.registerPreviousPageCommand(this::handlePreviousPageVoice);
+        voiceHelper.registerNextPageCommand(this::handleNextPageVoice);
+        voiceHelper.registerBackCommand(this::handleBackVoice);
+        voiceAssistant.enableGrammar();
     }
 
     private void selectGroupByVoice(GrupoDTO grupo) {
@@ -115,10 +129,29 @@ public class GruposController {
         }
     }
 
+    private void handleNextPage() {
+        voiceHelper.announcePageChange(view.getCurrentPage(), view.getTotalPages());
+    }
+
+    private void handlePreviousPage() {
+        voiceHelper.announcePageChange(view.getCurrentPage(), view.getTotalPages());
+    }
+
+    private void handleNextPageVoice() {
+        view.goToNextPage();
+    }
+
+    private void handlePreviousPageVoice() {
+        view.goToPreviousPage();
+    }
+
     private void handleBack() {
+        handleBackVoice();
+    }
+
+    private void handleBackVoice() {
         voiceAssistant.stopSpeaking();
         voiceHelper.announceBack();
-        voiceAssistant.stopSpeaking();
         voiceAssistant.cleanup();
         Navigator.navigateToIdentification();
     }
