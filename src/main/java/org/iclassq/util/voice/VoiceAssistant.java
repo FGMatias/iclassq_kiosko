@@ -87,7 +87,7 @@ public class VoiceAssistant {
 
         if (numberHandler != null) {
             allWords.addAll(Arrays.asList(
-                    "cero", "uno", "dos", "tres", "cuartro", "cinco",
+                    "cero", "uno", "dos", "tres", "cuatro", "cinco",
                     "seis", "siete", "ocho", "nueve"
             ));
         }

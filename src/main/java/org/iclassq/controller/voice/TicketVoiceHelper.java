@@ -1,6 +1,5 @@
 package org.iclassq.controller.voice;
 
-import org.iclassq.model.dto.response.TicketResponseDTO;
 import org.iclassq.util.voice.VoiceAssistant;
 
 public class TicketVoiceHelper {
@@ -11,48 +10,52 @@ public class TicketVoiceHelper {
         this.voiceAssistant = voiceAssistant;
     }
 
-    public void announceTicket(TicketResponseDTO ticket) {
-        if (!voiceAssistant.isEnabled() || ticket == null) {
+    public void announceTicketGenerated(String codigoTicket) {
+        if (!voiceAssistant.isEnabled() || codigoTicket == null || codigoTicket.isEmpty()) {
             return;
         }
 
-        StringBuilder message = new StringBuilder();
+        String codigoLegible = formatTicketCode(codigoTicket);
 
-        message.append("Tu ticket ha sido generado exitosamente. ");
-        message.append("Tu número es: ");
-        message.append(formatTicketNumber(ticket.getCodigo()));
-        message.append(". ");
+        String message = String.format(
+                "Ticket generado exitosamente. Su código es: %s. " +
+                codigoLegible
+        );
 
-//        if (ticket.getVGrupo() != null && !ticket.getVGrupo().isEmpty()) {
-//            message.append("Grupo: ");
-//            message.append(ticket.getVGrupo());
-//            message.append(". ");
-//        }
-//
-//        if (ticket.getVSubGrupo() != null && !ticket.getVSubGrupo().isEmpty()) {
-//            message.append("Servicio: ");
-//            message.append(ticket.getVSubGrupo());
-//            message.append(". ");
-//        }
-
-        message.append("Por favor espera a que se llame tu número en la pantalla. Gracias.");
-
-        voiceAssistant.speak(message.toString());
+        voiceAssistant.speak(message);
     }
 
-    private String formatTicketNumber(String ticket) {
-        if (ticket == null || ticket.isEmpty()) {
-            return "sin número";
+    public void registerCloseCommand(Runnable onClose) {
+        if (!voiceAssistant.isEnabled()) {
+            return;
+        }
+
+        voiceAssistant.registerCommand("cerrar,salir,finalizar,terminar", onClose);
+    }
+
+    public void announceClosing() {
+        if (!voiceAssistant.isEnabled()) {
+            return;
+        }
+
+        voiceAssistant.speak("Cerrando. Regresando al inicio.");
+    }
+
+    private String formatTicketCode(String code) {
+        if (code == null || code.isEmpty()) {
+            return "";
         }
 
         StringBuilder formatted = new StringBuilder();
 
-        for (int i = 0; i < ticket.length(); i++) {
-            char c = ticket.charAt(i);
+        for (int i = 0; i < code.length(); i++) {
+            char c = code.charAt(i);
 
             if (Character.isLetter(c)) {
                 formatted.append(c).append(" ");
             } else if (Character.isDigit(c)) {
+                formatted.append(c).append(" ");
+            } else {
                 formatted.append(c).append(" ");
             }
         }

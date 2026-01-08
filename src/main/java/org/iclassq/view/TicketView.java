@@ -176,4 +176,8 @@ public class TicketView {
     public BorderPane getRoot() {
         return root;
     }
+
+    public String getTicketCode() {
+        return ticket != null ? ticket.getCodigo() : "";
+    }
 }

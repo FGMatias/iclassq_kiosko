@@ -123,16 +123,25 @@ public class IdentificationController {
         }
 
         voiceAssistant.stopSpeaking();
-        voiceHelper.announceNavigation();
 
         SessionData.getInstance().setTipoDocumento(tipoDocId);
         SessionData.getInstance().setTipoDocumentoDescripcion(tipoDocDescripcion);
         SessionData.getInstance().setNumeroDocumento(numeroDoc);
 
-        voiceAssistant.stopSpeaking();
-        voiceAssistant.cleanup();
+        voiceHelper.announceNavigation();
 
-        Navigator.navigateToGroups();
+        new Thread(() -> {
+            try {
+                Thread.sleep(1500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            Platform.runLater(() -> {
+                voiceAssistant.cleanup();
+                Navigator.navigateToGroups();
+            });
+        }).start();
     }
 
     private void handleDelete() {

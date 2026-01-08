@@ -100,23 +100,36 @@ public class SubGruposController {
         }
 
         String nombreGrupo = SessionData.getInstance().getGrupo().getNombre();
+        int currentPage = view.getCurrentPage();
+        int totalPages = view.getTotalPages();
 
-        if (!isInitialLoad) {
-            int currentPage = view.getCurrentPage();
-            int totalPages = view.getTotalPages();
-            voiceHelper.announceSubGroups(nombreGrupo, subGroups, currentPage, totalPages);
-        }
+        voiceHelper.announceSubGroups(nombreGrupo, subGroups, currentPage, totalPages);
 
         voiceHelper.registerSubGroupCommands(subGroups, this::selectSubGroupByVoice);
         voiceHelper.registerPreviousPageCommand(this::handlePreviousPageVoice);
         voiceHelper.registerNextPageCommand(this::handleNextPageVoice);
         voiceHelper.registerBackCommand(this::handleBackVoice);
         voiceAssistant.enableGrammar();
+
+        logger.info("Gramática activada para subgrupos");
     }
 
     private void selectSubGroupByVoice(SubGrupoDTO subGrupo) {
+        voiceAssistant.stopSpeaking();
+
         voiceHelper.announceSubGroupSelected(subGrupo.getVNombreSubGrupo());
-        handleSubGroupSelected(subGrupo);
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(800);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            Platform.runLater(() -> {
+                handleSubGroupSelected(subGrupo);
+            });
+        }).start();
     }
 
     private void handleSubGroupSelected(SubGrupoDTO subGrupo) {
@@ -201,8 +214,19 @@ public class SubGruposController {
     private void handleBackVoice() {
         voiceAssistant.stopSpeaking();
         voiceHelper.announceBack();
-        voiceAssistant.cleanup();
-        Navigator.navigateToGroups();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            Platform.runLater(() -> {
+                voiceAssistant.cleanup();
+                Navigator.navigateToGroups();
+            });
+        }).start();
     }
 
     public void shutdown() {

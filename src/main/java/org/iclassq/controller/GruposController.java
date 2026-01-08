@@ -95,31 +95,57 @@ public class GruposController {
         }
 
         String numeroDocumento = SessionData.getInstance().getNumeroDocumento();
+        int currentPage = view.getCurrentPage();
+        int totalPages = view.getTotalPages();
 
-        if (!isInitialLoad) {
-            int currentPage = view.getCurrentPage();
-            int totalPages = view.getTotalPages();
-            voiceHelper.announceGroups(numeroDocumento, groups, currentPage, totalPages);
-        }
+        voiceHelper.announceGroups(numeroDocumento, groups, currentPage, totalPages);
 
         voiceHelper.registerGroupCommands(groups, this::selectGroupByVoice);
         voiceHelper.registerPreviousPageCommand(this::handlePreviousPageVoice);
         voiceHelper.registerNextPageCommand(this::handleNextPageVoice);
         voiceHelper.registerBackCommand(this::handleBackVoice);
         voiceAssistant.enableGrammar();
+
+        logger.info("Gramática activada para grupos");
     }
 
     private void selectGroupByVoice(GrupoDTO grupo) {
+        voiceAssistant.stopSpeaking();
         voiceHelper.announceGroupSelected(grupo.getNombre());
-        handleGrupoSelected(grupo);
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(800);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            Platform.runLater(() -> {
+                handleGrupoSelected(grupo);
+            });
+        }).start();
     }
 
     private void handleGrupoSelected(GrupoDTO grupo) {
         try {
             voiceAssistant.stopSpeaking();
+            voiceHelper.announceNavigation();
+
             SessionData.getInstance().setGrupo(grupo);
-            voiceAssistant.cleanup();
-            Navigator.navigateToSubGroups();
+
+            new Thread(() -> {
+                try {
+                    Thread.sleep(1500);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+
+                Platform.runLater(() -> {
+                    voiceAssistant.cleanup();
+                    Navigator.navigateToSubGroups();
+                });
+            }).start();
+
         } catch (Exception e) {
             logger.severe("Error al seleccionar grupo: " + e.getMessage());
             Message.showError(
@@ -152,8 +178,19 @@ public class GruposController {
     private void handleBackVoice() {
         voiceAssistant.stopSpeaking();
         voiceHelper.announceBack();
-        voiceAssistant.cleanup();
-        Navigator.navigateToIdentification();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            Platform.runLater(() -> {
+                voiceAssistant.cleanup();
+                Navigator.navigateToIdentification();
+            });
+        }).start();
     }
 
     public void shutdown() {

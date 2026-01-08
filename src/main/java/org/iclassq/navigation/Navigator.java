@@ -6,10 +6,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import org.iclassq.controller.GruposController;
-import org.iclassq.controller.LoginController;
-import org.iclassq.controller.SubGruposController;
-import org.iclassq.controller.IdentificationController;
+import org.iclassq.controller.*;
 import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.response.TicketResponseDTO;
 import org.iclassq.view.*;
@@ -92,6 +89,7 @@ public class Navigator {
 
     public static void navigatoToTicket(TicketResponseDTO ticket) {
         TicketView view = new TicketView(ticket);
+        new TicketController(view);
 
         view.setOnClose(() -> {
             navigateToIdentification();
