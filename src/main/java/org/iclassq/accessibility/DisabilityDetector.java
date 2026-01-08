@@ -5,8 +5,7 @@ import org.iclassq.accessibility.camera.CameraService;
 import org.iclassq.accessibility.ml.DetectionResponse;
 import org.iclassq.accessibility.ml.MLDetectionService;
 
-import java.awt.image.BufferedImage;
-import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 public class DisabilityDetector {
@@ -16,12 +15,20 @@ public class DisabilityDetector {
     private final CameraService cameraService;
     private final MLDetectionService mlService;
     private final AccessibilityManager accessibilityManager;
+    private final AccessibilityDetectionService detectionService;
+
     private boolean initialized = false;
 
     public DisabilityDetector(CameraService cameraService, MLDetectionService mlService) {
         this.cameraService = cameraService;
         this.mlService = mlService;
         this.accessibilityManager = AccessibilityManager.getInstance();
+
+        this.detectionService = new AccessibilityDetectionService(
+                cameraService,
+                mlService,
+                accessibilityManager
+        );
 
         logger.info("DisabilityDetector creado");
     }
@@ -45,17 +52,19 @@ public class DisabilityDetector {
             logger.severe("   URL: " + mlService.getApiUrl());
             return false;
         }
-        logger.info("  API ML disponible");
+        logger.info("API ML disponible");
 
         logger.info("Inicializando cámaras...");
         if (!cameraService.initialize()) {
             logger.severe("No se pudieron inicializar las cámaras");
             return false;
         }
-        logger.info(String.format("   %d cámara(s) inicializada(s)",
+        logger.info(String.format("%d cámara(s) inicializada(s)",
                 cameraService.getInitializedCameraCount()));
 
         initialized = true;
+        detectionService.markAsReady();
+
         logger.info("═══════════════════════════════════════");
         logger.info("DISABILITY DETECTOR INICIALIZADO");
         logger.info("═══════════════════════════════════════\n");
@@ -74,36 +83,15 @@ public class DisabilityDetector {
 
         logger.info("\nIniciando proceso de detección...");
 
-        logger.info("Capturando frames de cámaras...");
-        List<BufferedImage> frames = cameraService.captureAllFramesAsList();
-
-        if (frames.isEmpty()) {
-            logger.severe("No se capturaron frames");
+        try {
+            return detectionService.detectAsync().get();
+        } catch (Exception e) {
+            logger.severe("Error en detección: " + e.getMessage());
             return DetectionResponse.builder()
                     .success(false)
-                    .error("No se capturaron frames de las cámaras")
+                    .error("Error en detección: " + e.getMessage())
                     .build();
         }
-
-        logger.info(String.format("   %d frame(s) capturado(s)", frames.size()));
-
-        logger.info("Enviando a API ML...");
-        DetectionResponse response = mlService.detect(frames);
-
-        if (response.hasError()) {
-            logger.severe(String.format("Error en detección: %s", response.getError()));
-            return response;
-        }
-
-        if (!response.isValid()) {
-            logger.warning("Respuesta no válida de API");
-            return response;
-        }
-
-        logger.info(String.format("Resultado: %s", response.getSummary()));
-        logger.info(String.format("Tiempo de procesamiento: %dms", response.getProcessingTimeMs()));
-
-        return response;
     }
 
     public boolean detectAndActivate() {
@@ -127,11 +115,19 @@ public class DisabilityDetector {
         }
     }
 
+    public AccessibilityDetectionService getDetectionService() {
+        return detectionService;
+    }
+
     public void shutdown() {
         logger.info("Cerrando DisabilityDetector...");
 
         if (cameraService != null) {
             cameraService.shutdown();
+        }
+
+        if (detectionService != null) {
+            detectionService.shutdown();
         }
 
         initialized = false;
@@ -165,6 +161,8 @@ public class DisabilityDetector {
         sb.append(String.format("Cámaras: %d activa(s)\n", cameraService.getInitializedCameraCount()));
         sb.append(String.format("Accesibilidad: %s\n",
                 accessibilityManager.isAccessibilityEnabled() ? "Activa" : "Inactiva"));
+        sb.append(String.format("Servicio de Detección: %s\n",
+                detectionService.isReady() ? "Listo" : "No listo"));
         sb.append("═══════════════════════════════════════\n");
         return sb.toString();
     }

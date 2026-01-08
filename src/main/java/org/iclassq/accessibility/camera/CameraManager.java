@@ -5,26 +5,51 @@ import org.bytedeco.javacv.Frame;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class CameraManager {
 
     private static final Logger logger = Logger.getLogger(CameraManager.class.getName());
 
     public static List<CameraInfo> detectAvailableCameras(int maxCamerasToCheck) {
-        List<CameraInfo> cameras = new ArrayList<>();
+        logger.info(String.format("Detectando cámaras disponibles (max: %d) [PARALELO]...", maxCamerasToCheck));
 
-        logger.info(String.format("🔍 Detectando cámaras disponibles (max: %d)...", maxCamerasToCheck));
+        ExecutorService executor = Executors.newFixedThreadPool(Math.min(maxCamerasToCheck, 4));
+        List<Future<CameraInfo>> futures = new ArrayList<>();
 
         for (int i = 0; i < maxCamerasToCheck; i++) {
-            CameraInfo cameraInfo = testCamera(i);
-            if (cameraInfo != null) {
-                cameras.add(cameraInfo);
-                logger.info(String.format("Cámara detectada: %s", cameraInfo));
+            final int index = i;
+            futures.add(executor.submit(() -> testCamera(index)));
+        }
+
+        List<CameraInfo> cameras = new ArrayList<>();
+        for (Future<CameraInfo> future : futures) {
+            try {
+                CameraInfo info = future.get(5, TimeUnit.SECONDS);
+                if (info != null) {
+                    cameras.add(info);
+                    logger.info(String.format("Cámara detectada: %s", info));
+                }
+            } catch (TimeoutException e) {
+                logger.fine("Timeout detectando cámara");
+            } catch (Exception e) {
+                logger.fine("Error detectando cámara: " + e.getMessage());
             }
         }
 
-        logger.info(String.format("📸 Total de cámaras detectadas: %d", cameras.size()));
+        executor.shutdown();
+        try {
+            executor.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+
+        cameras.sort((a, b) -> Integer.compare(a.getIndex(), b.getIndex()));
+
+        logger.info(String.format("Total de cámaras detectadas: %d", cameras.size()));
         return cameras;
     }
 
@@ -118,7 +143,7 @@ public class CameraManager {
         List<CameraInfo> cameras = detectAvailableCameras();
 
         System.out.println("\n═══════════════════════════════════════");
-        System.out.println("📸 CÁMARAS DISPONIBLES");
+        System.out.println("CÁMARAS DISPONIBLES");
         System.out.println("═══════════════════════════════════════");
 
         if (cameras.isEmpty()) {

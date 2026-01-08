@@ -1,58 +1,68 @@
 package org.iclassq.accessibility.camera;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-@Data
+@Getter
+@Setter
+@ToString
 public class CameraConfig {
-    private int frameWidth = 640;
-    private int frameHeight = 480;
-    private int fps = 30;
-    private int framesPerCapture = 3;
-    private int frameDelayMs = 100;
-    private int initTimeoutMs = 5000;
-    private boolean keepCamerasActive = true;
-    private int jpegQuality = 85;
-    private int maxCameras = 10;
+    private int maxCameras = 2;
+    private int captureWidth = 640;
+    private int captureHeight = 480;
+    private int framesPerCapture = 1;
+    private int delayBetweenFrames = 100;
     private int[] specificCameraIndices = null;
-
-    public void setJpegQuality(int jpegQuality) {
-        this.jpegQuality = Math.max(0, Math.min(100, jpegQuality));
-    }
+    private int cameraInitTimeout = 5;
 
     public static CameraConfig getDefaultMLConfig() {
         CameraConfig config = new CameraConfig();
-        config.setFrameWidth(640);
-        config.setFrameWidth(480);
-        config.setFramesPerCapture(3);
-        config.setFrameDelayMs(100);
-        config.setKeepCamerasActive(true);
-        config.setJpegQuality(80);
+        config.setMaxCameras(2);
+        config.setCaptureWidth(640);
+        config.setCaptureHeight(480);
+        config.setFramesPerCapture(1);
+        config.setDelayBetweenFrames(100);
         return config;
     }
 
-    public static CameraConfig getHighQualityConfig() {
+    public static CameraConfig getHighQualityMLConfig() {
         CameraConfig config = new CameraConfig();
-        config.setFrameWidth(1280);
-        config.setFrameHeight(720);
-        config.setFramesPerCapture(5);
-        config.setFrameDelayMs(150);
-        config.setJpegQuality(95);
-        return config;
-    }
-
-    public static CameraConfig getLowQualityConfig() {
-        CameraConfig config = new CameraConfig();
-        config.setFrameWidth(320);
-        config.setFrameHeight(240);
+        config.setMaxCameras(2);
+        config.setCaptureWidth(1280);
+        config.setCaptureHeight(720);
         config.setFramesPerCapture(2);
-        config.setFrameDelayMs(50);
-        config.setJpegQuality(70);
+        config.setDelayBetweenFrames(200);
         return config;
     }
 
-    @Override
-    public String toString() {
-        return String.format("CameraConfig[%dx%d, %d frames, %dms delay, quality=%d]",
-                frameWidth, frameHeight, framesPerCapture, frameDelayMs, jpegQuality);
+    public static CameraConfig getTestingConfig() {
+        CameraConfig config = new CameraConfig();
+        config.setMaxCameras(1);
+        config.setSpecificCameraIndices(new int[]{0});
+        config.setCaptureWidth(640);
+        config.setCaptureHeight(480);
+        config.setFramesPerCapture(1);
+        return config;
+    }
+
+    public static CameraConfig getMultiCameraConfig(int numCameras) {
+        CameraConfig config = new CameraConfig();
+        config.setMaxCameras(numCameras);
+        config.setCaptureWidth(640);
+        config.setCaptureHeight(480);
+        config.setFramesPerCapture(1);
+        config.setDelayBetweenFrames(100);
+        return config;
+    }
+
+    public static CameraConfig getSpecificCamerasConfig(int... cameraIndices) {
+        CameraConfig config = new CameraConfig();
+        config.setMaxCameras(cameraIndices.length);
+        config.setSpecificCameraIndices(cameraIndices);
+        config.setCaptureWidth(640);
+        config.setCaptureHeight(480);
+        config.setFramesPerCapture(1);
+        return config;
     }
 }

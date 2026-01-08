@@ -38,7 +38,7 @@ public class AccessibilityManager {
     }
 
     public void enableAccessibility() {
-        logger.info("🔊 Activando servicios de accesibilidad...");
+        logger.info("Activando servicios de accesibilidad...");
 
         currentMode = AccessibilityMode.ACCESSIBLE;
 
@@ -60,7 +60,7 @@ public class AccessibilityManager {
     private void enableVoice() {
         try {
             if (voiceAssistant == null) {
-                voiceAssistant = VoiceAssistant.getInstance();
+                voiceAssistant = new VoiceAssistant();
             }
 
             voiceEnabled = true;
@@ -77,7 +77,7 @@ public class AccessibilityManager {
         try {
             if (voiceAssistant != null) {
                 voiceAssistant.stopSpeaking();
-                voiceAssistant.stopListening();
+                voiceAssistant.cleanup();
             }
 
             voiceEnabled = false;
