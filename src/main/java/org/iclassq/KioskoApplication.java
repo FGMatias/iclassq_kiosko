@@ -4,6 +4,7 @@ import atlantafx.base.theme.*;
 import javafx.application.Application;
 import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
+import org.iclassq.accessibility.DisabilityDetector;
 import org.iclassq.accessibility.voice.VoiceManager;
 import org.iclassq.config.AppConfig;
 import org.iclassq.config.ServiceFactory;
@@ -15,6 +16,7 @@ import java.util.logging.Logger;
 
 public class KioskoApplication extends Application {
     private static final Logger logger = Logger.getLogger(KioskoApplication.class.getName());
+    private static DisabilityDetector disabilityDetector;
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -24,6 +26,7 @@ public class KioskoApplication extends Application {
         ServiceFactory.init(AppConfig.getBackendUrl());
 
         initializeVoiceServices();
+        initializeDisabilityDetector();
 
         Navigator.init(stage);
 
@@ -54,6 +57,43 @@ public class KioskoApplication extends Application {
         }
     }
 
+    private void initializeDisabilityDetector() {
+        logger.info("Inicializando sistema de detección de discapacidad...");
+
+        new Thread(() -> {
+            try {
+                disabilityDetector = new DisabilityDetector();
+
+                boolean initialized = disabilityDetector.initialize();
+
+                if (initialized) {
+                    logger.info("Sistema de detección de discapacidad LISTO");
+                    disabilityDetector.printDetectorInfo();
+                } else {
+                    logger.warning("Sistema de detección no disponible");
+                    logger.warning("   Verifique:");
+                    logger.warning("   1. Docker Desktop está corriendo");
+                    logger.warning("   2. API ML activa: docker ps");
+                    logger.warning("   3. Cámaras conectadas");
+                    disabilityDetector = null;
+                }
+
+            } catch (Exception e) {
+                logger.severe("Error al inicializar sistema de detección: " + e.getMessage());
+                disabilityDetector = null;
+            }
+
+        }, "DisabilityDetector-Init").start();
+    }
+
+    public static DisabilityDetector getDisabilityDetector() {
+        return disabilityDetector;
+    }
+
+    public static boolean isDisabilityDetectorAvailable() {
+        return disabilityDetector != null && disabilityDetector.isInitialized();
+    }
+
     @Override
     public void stop() throws Exception {
         try {
@@ -64,6 +104,15 @@ public class KioskoApplication extends Application {
             }
         } catch (Exception e) {
             logger.warning("Error al deshabilitar servicios de voz: " + e.getMessage());
+        }
+
+        try {
+            if (disabilityDetector != null) {
+                disabilityDetector.shutdown();
+                logger.info("Sistema de detección cerrado");
+            }
+        } catch (Exception e) {
+            logger.warning("Error al cerrar sistema de detección: " + e.getMessage());
         }
 
         super.stop();

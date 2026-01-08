@@ -2,12 +2,15 @@ package org.iclassq.accessibility.ml;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import lombok.Getter;
 import okhttp3.*;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -36,22 +39,30 @@ public class MLDetectionService {
                 .setPrettyPrinting()
                 .create();
 
-        logger.info(String.format("MLDetectionService configurado: %s (timeout: %ds)",
-                apiUrl, timeoutSeconds));
+        logger.info(String.format("MLDetectionService configurado: %s (timeout: %ds, threshold: %.2f)",
+                apiUrl, timeoutSeconds, confidenceThreshold));
     }
 
     public MLDetectionService() {
-        this("https://j54pl9m6-5000.brs.devtunnels.ms/detect", 10, 0.5);
+        this("http://localhost:5000/verify-images", 15, 0.5);
     }
 
     public DetectionResponse detect(List<BufferedImage> images) {
+        if (images == null || images.isEmpty()) {
+            logger.warning("No hay imágenes para procesar");
+            return DetectionResponse.builder()
+                    .success(false)
+                    .error("No hay imágenes para procesar")
+                    .build();
+        }
+
         List<String> base64Images = Base64Utils.toBase64List(images);
 
         if (base64Images.isEmpty()) {
-            logger.severe("No hay imágenes válidas para enviar");
+            logger.severe("No se pudieron convertir las imágenes a Base64");
             return DetectionResponse.builder()
                     .success(false)
-                    .error("No hay imágenes válidas para procesar")
+                    .error("No se pudieron convertir las imágenes a Base64")
                     .build();
         }
 
@@ -70,7 +81,7 @@ public class MLDetectionService {
             String jsonRequest = gson.toJson(request);
 
             int totalSize = Base64Utils.getTotalBase64Size(base64Images);
-            logger.info(String.format("Enviando %d imágenes a API ML (%s)...",
+            logger.info(String.format("Enviando %d imagen(es) a API ML (%s)...",
                     base64Images.size(), Base64Utils.formatBytes(totalSize)));
 
             RequestBody body = RequestBody.create(jsonRequest, JSON);
@@ -84,13 +95,14 @@ public class MLDetectionService {
 
                 if (!response.isSuccessful()) {
                     String errorBody = response.body() != null ? response.body().string() : "Unknown error";
-                    logger.severe(String.format("Error de API: %d - %s",
+                    logger.severe(String.format("Error de API: HTTP %d - %s",
                             response.code(), errorBody));
 
                     return DetectionResponse.builder()
                             .success(false)
                             .error(String.format("HTTP %d: %s", response.code(), errorBody))
                             .processingTimeMs(processingTime)
+                            .framesAnalyzed(base64Images.size())
                             .build();
                 }
 
@@ -103,10 +115,8 @@ public class MLDetectionService {
                 detectionResponse.setFramesAnalyzed(base64Images.size());
                 detectionResponse.setSuccess(true);
 
-                logger.info(String.format("Detección completada: %s (confianza: %.2f%%, tiempo: %dms)",
-                        detectionResponse.isDisabled() ? "DISCAPACITADO" : "NORMAL",
-                        detectionResponse.getConfidence() * 100,
-                        processingTime));
+                logger.info(String.format("Detección completada: %s (tiempo: %dms)",
+                        detectionResponse.getStatus(), processingTime));
 
                 return detectionResponse;
             }
@@ -119,68 +129,63 @@ public class MLDetectionService {
                     .success(false)
                     .error("Error de conexión: " + e.getMessage())
                     .processingTimeMs(processingTime)
+                    .framesAnalyzed(base64Images != null ? base64Images.size() : 0)
                     .build();
         }
     }
 
     private DetectionResponse parseResponse(String jsonResponse) {
         try {
-            com.google.gson.JsonObject json = gson.fromJson(jsonResponse, com.google.gson.JsonObject.class);
+            JsonObject json = gson.fromJson(jsonResponse, JsonObject.class);
 
-            boolean isDisabled = getBoolean(json, "is_disabled", "isDisabled", "disabled");
-            double confidence = getDouble(json, "confidence", "score", "probability");
-            String disabilityType = getString(json, "disability_type", "disabilityType", "type");
+            String status = json.has("status") && !json.get("status").isJsonNull()
+                    ? json.get("status").getAsString()
+                    : "no válido";
+
+            DetectionResponse.DetectionDetails details = null;
+            if (json.has("details") && !json.get("details").isJsonNull()) {
+                JsonObject detailsJson = json.getAsJsonObject("details");
+
+                Map<String, Integer> totals = new HashMap<>();
+                if (detailsJson.has("totals") && !detailsJson.get("totals").isJsonNull()) {
+                    JsonObject totalsJson = detailsJson.getAsJsonObject("totals");
+
+                    totals.put("card", getIntValue(totalsJson, "card"));
+                    totals.put("crutch", getIntValue(totalsJson, "crutch"));
+                    totals.put("sunglasses", getIntValue(totalsJson, "sunglasses"));
+                }
+
+                details = DetectionResponse.DetectionDetails.builder()
+                        .totals(totals)
+                        .build();
+            }
 
             return DetectionResponse.builder()
-                    .isDisabled(isDisabled)
-                    .confidence(confidence)
-                    .disabilityType(disabilityType)
+                    .status(status)
+                    .details(details)
                     .build();
 
         } catch (Exception e) {
-            logger.warning("No se pudo parsear respuesta JSON: " + e.getMessage());
+            logger.warning("Error parseando respuesta JSON: " + e.getMessage());
 
             return DetectionResponse.builder()
-                    .isDisabled(false)
-                    .confidence(0.0)
+                    .status("no válido")
                     .error("Error parseando respuesta: " + e.getMessage())
                     .build();
         }
     }
 
-    private boolean getBoolean(com.google.gson.JsonObject json, String... keys) {
-        for (String key : keys) {
-            if (json.has(key) && !json.get(key).isJsonNull()) {
-                return json.get(key).getAsBoolean();
-            }
+    private int getIntValue(JsonObject json, String key) {
+        if (json.has(key) && !json.get(key).isJsonNull()) {
+            return json.get(key).getAsInt();
         }
-        return false;
-    }
-
-    private double getDouble(com.google.gson.JsonObject json, String... keys) {
-        for (String key : keys) {
-            if (json.has(key) && !json.get(key).isJsonNull()) {
-                return json.get(key).getAsDouble();
-            }
-        }
-        return 0.0;
-    }
-
-    private String getString(com.google.gson.JsonObject json, String... keys) {
-        for (String key : keys) {
-            if (json.has(key) && !json.get(key).isJsonNull()) {
-                return json.get(key).getAsString();
-            }
-        }
-        return null;
+        return 0;
     }
 
     public boolean isApiAvailable() {
         try {
-            String healthUrl = apiUrl.replace("/detect", "/health");
-
             Request request = new Request.Builder()
-                    .url(healthUrl)
+                    .url(apiUrl.replace("/verify-images", "/"))
                     .get()
                     .build();
 
@@ -188,7 +193,7 @@ public class MLDetectionService {
                 boolean available = response.isSuccessful();
                 logger.info(String.format("API ML %s: %s",
                         available ? "DISPONIBLE" : "NO DISPONIBLE",
-                        healthUrl));
+                        apiUrl));
                 return available;
             }
 
@@ -196,5 +201,25 @@ public class MLDetectionService {
             logger.warning("API ML no disponible: " + e.getMessage());
             return false;
         }
+    }
+
+    public String testConnection() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n═══════════════════════════════════════\n");
+        sb.append("🔌 TEST DE CONEXIÓN API ML\n");
+        sb.append("═══════════════════════════════════════\n");
+        sb.append(String.format("URL: %s\n", apiUrl));
+        sb.append(String.format("Timeout: %ds\n", client.connectTimeoutMillis() / 1000));
+        sb.append(String.format("Threshold: %.2f\n", defaultConfidenceThreshold));
+
+        try {
+            boolean available = isApiAvailable();
+            sb.append(String.format("Estado: %s\n", available ? " CONECTADO" : " DESCONECTADO"));
+        } catch (Exception e) {
+            sb.append(String.format("Estado:  ERROR - %s\n", e.getMessage()));
+        }
+
+        sb.append("═══════════════════════════════════════\n");
+        return sb.toString();
     }
 }

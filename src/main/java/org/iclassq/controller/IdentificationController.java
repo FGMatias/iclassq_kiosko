@@ -1,6 +1,9 @@
 package org.iclassq.controller;
 
 import javafx.application.Platform;
+import org.iclassq.KioskoApplication;
+import org.iclassq.accessibility.DisabilityDetector;
+import org.iclassq.accessibility.ml.DetectionResponse;
 import org.iclassq.config.ServiceFactory;
 import org.iclassq.controller.voice.IdentificationVoiceHelper;
 import org.iclassq.model.domain.SessionData;
@@ -34,8 +37,88 @@ public class IdentificationController {
         view.setOnTypeDocumentChange(this::handleTypeDocumentChange);
         view.setOnDelete(this::handleDelete);
         view.setOnDeleteAll(this::handleDeleteAll);
+        executeDisabilityDetection();
         loadDocumentTypes();
     }
+
+    private void executeDisabilityDetection() {
+        if (!KioskoApplication.isDisabilityDetectorAvailable()) {
+            logger.warning("Sistema de detección no disponible - continuar sin detección");
+
+            Platform.runLater(() -> {
+                DisabilityDetector detector = KioskoApplication.getDisabilityDetector();
+                if (detector != null) {
+                    detector.getAccessibilityManager().disableAccessibility();
+                }
+                SessionData.getInstance().setEsPreferencial(false);
+            });
+
+            return;
+        }
+
+        logger.info("Ejecutando detección de discapacidad...");
+
+        new Thread(() -> {
+            try {
+                DisabilityDetector detector = KioskoApplication.getDisabilityDetector();
+
+                if (detector == null) {
+                    logger.warning("Detector no disponible");
+                    return;
+                }
+
+                DetectionResponse response = detector.detect();
+
+                if (response.isSuccess()) {
+                    if (response.isDisabilityDetected()) {
+                        logger.info("Persona con discapacidad detectada");
+                        logger.info(String.format("   Tipo: %s", response.getDisabilityType()));
+                        logger.info(String.format("   Carnet: %d", response.getTotalDetections("card")));
+                        logger.info(String.format("   Muletas: %d", response.getTotalDetections("crutch")));
+                        logger.info(String.format("   Lentes: %d", response.getTotalDetections("sunglasses")));
+
+                        Platform.runLater(() -> {
+                            detector.getAccessibilityManager().enableAccessibility();
+                            logger.info("Servicios de accesibilidad ACTIVADOS");
+                        });
+
+                        SessionData.getInstance().setEsPreferencial(true);
+
+                    } else {
+                        logger.info("Persona sin discapacidad detectada");
+
+                        Platform.runLater(() -> {
+                            detector.getAccessibilityManager().disableAccessibility();
+                            logger.info("Servicios de accesibilidad DESACTIVADOS");
+                        });
+
+                        SessionData.getInstance().setEsPreferencial(false);
+                    }
+                } else {
+                    logger.warning("Detección falló: " + response.getError());
+
+                    Platform.runLater(() -> {
+                        detector.getAccessibilityManager().disableAccessibility();
+                        SessionData.getInstance().setEsPreferencial(false);
+                    });
+                }
+
+            } catch (Exception e) {
+                logger.severe("Error en detección: " + e.getMessage());
+                e.printStackTrace();
+
+                Platform.runLater(() -> {
+                    DisabilityDetector detector = KioskoApplication.getDisabilityDetector();
+                    if (detector != null) {
+                        detector.getAccessibilityManager().disableAccessibility();
+                    }
+                    SessionData.getInstance().setEsPreferencial(false);
+                });
+            }
+
+        }, "DisabilityDetection-IdentificationView").start();
+    }
+
 
     private void loadDocumentTypes() {
         view.getTypeDocument().setDisable(true);
