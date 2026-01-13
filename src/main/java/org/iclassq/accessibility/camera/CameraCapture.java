@@ -33,8 +33,8 @@ public class CameraCapture {
 
             grabber = new OpenCVFrameGrabber(cameraIndex);
 
-            grabber.setImageWidth(config.getFrameWidth());
-            grabber.setImageHeight(config.getFrameHeight());
+            grabber.setImageWidth(config.getCaptureWidth());
+            grabber.setImageHeight(config.getCaptureHeight());
             grabber.start();
 
             Frame testFrame = grabber.grab();

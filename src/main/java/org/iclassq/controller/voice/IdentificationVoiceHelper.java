@@ -17,7 +17,7 @@ public class IdentificationVoiceHelper {
     }
 
     public void announceDocumentTypes(List<TipoDocumentoDTO> documentTypes) {
-        if (!voiceAssistant.isEnabled() || documentTypes == null || documentTypes.isEmpty()) {
+        if (!voiceAssistant.isActive() || documentTypes == null || documentTypes.isEmpty()) {
             return;
         }
 
@@ -45,13 +45,12 @@ public class IdentificationVoiceHelper {
             List<TipoDocumentoDTO> documentTypes,
             Consumer<TipoDocumentoDTO> onDocumentSelected
     ) {
-        if (!voiceAssistant.isEnabled() || documentTypes == null) {
+        if (!voiceAssistant.isActive() || documentTypes == null) {
             return;
         }
 
         for (TipoDocumentoDTO docType : documentTypes) {
             String descripcion = docType.getDescripcion().toLowerCase();
-
             String keywords = KeywordGenerator.generateKeywords(descripcion);
 
             voiceAssistant.registerCommand(keywords, () -> {
@@ -61,13 +60,13 @@ public class IdentificationVoiceHelper {
     }
 
     public void announceDocumentTypeSelected(String descripcion) {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isActive()) {
             return;
         }
 
         String message = String.format(
                 "Has seleccionado %s. Ahora ingresa tu número de documento. " +
-                "Puedes dictarlo número por número o usar el teclado en pantalla.",
+                        "Puedes dictarlo número por número o usar el teclado en pantalla.",
                 descripcion
         );
 
@@ -75,7 +74,7 @@ public class IdentificationVoiceHelper {
     }
 
     public void registerNumberInput(Consumer<String> onNumbersRecognized) {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isActive()) {
             return;
         }
 
@@ -83,7 +82,7 @@ public class IdentificationVoiceHelper {
     }
 
     public void announceValidationSuccess() {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isActive()) {
             return;
         }
 
@@ -91,7 +90,7 @@ public class IdentificationVoiceHelper {
     }
 
     public void announceValidationError(String errorMessage) {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isActive()) {
             return;
         }
 
@@ -99,7 +98,7 @@ public class IdentificationVoiceHelper {
     }
 
     public void announceNavigation() {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isActive()) {
             return;
         }
 
@@ -107,7 +106,7 @@ public class IdentificationVoiceHelper {
     }
 
     public void announcedDeleted() {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isActive()) {
             return;
         }
 
@@ -115,7 +114,7 @@ public class IdentificationVoiceHelper {
     }
 
     public void announceDeletedAll() {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isActive()) {
             return;
         }
 
@@ -123,7 +122,7 @@ public class IdentificationVoiceHelper {
     }
 
     public void registerNextCommand(Runnable onNext) {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isActive()) {
             return;
         }
 
@@ -131,7 +130,7 @@ public class IdentificationVoiceHelper {
     }
 
     public void registerDeleteCommand(Runnable onDelete) {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isActive()) {
             return;
         }
 
@@ -139,7 +138,7 @@ public class IdentificationVoiceHelper {
     }
 
     public void registerDeleteAllCommand(Runnable onDeleteAll) {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isActive()) {
             return;
         }
 

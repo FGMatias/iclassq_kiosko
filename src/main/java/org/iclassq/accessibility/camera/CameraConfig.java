@@ -4,6 +4,11 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+/**
+ * Configuración para CameraService y CameraCapture
+ *
+ * VERSIÓN CORREGIDA: Incluye todos los métodos helper necesarios
+ */
 @Getter
 @Setter
 @ToString
@@ -16,6 +21,14 @@ public class CameraConfig {
     private int[] specificCameraIndices = null;
     private int cameraInitTimeout = 5;
 
+    public int getInitTimeoutMs() {
+        return cameraInitTimeout * 1000;
+    }
+
+    public int getFrameDelayMs() {
+        return delayBetweenFrames;
+    }
+
     public static CameraConfig getDefaultMLConfig() {
         CameraConfig config = new CameraConfig();
         config.setMaxCameras(2);
@@ -23,6 +36,7 @@ public class CameraConfig {
         config.setCaptureHeight(480);
         config.setFramesPerCapture(1);
         config.setDelayBetweenFrames(100);
+        config.setCameraInitTimeout(5);
         return config;
     }
 
@@ -33,6 +47,7 @@ public class CameraConfig {
         config.setCaptureHeight(720);
         config.setFramesPerCapture(2);
         config.setDelayBetweenFrames(200);
+        config.setCameraInitTimeout(10);
         return config;
     }
 
@@ -43,6 +58,8 @@ public class CameraConfig {
         config.setCaptureWidth(640);
         config.setCaptureHeight(480);
         config.setFramesPerCapture(1);
+        config.setDelayBetweenFrames(100);
+        config.setCameraInitTimeout(5);
         return config;
     }
 
@@ -53,6 +70,7 @@ public class CameraConfig {
         config.setCaptureHeight(480);
         config.setFramesPerCapture(1);
         config.setDelayBetweenFrames(100);
+        config.setCameraInitTimeout(5);
         return config;
     }
 
@@ -63,6 +81,8 @@ public class CameraConfig {
         config.setCaptureWidth(640);
         config.setCaptureHeight(480);
         config.setFramesPerCapture(1);
+        config.setDelayBetweenFrames(100);
+        config.setCameraInitTimeout(5);
         return config;
     }
 }

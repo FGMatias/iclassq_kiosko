@@ -2,8 +2,8 @@ package org.iclassq.controller;
 
 import javafx.application.Platform;
 import org.iclassq.KioskoApplication;
+import org.iclassq.accessibility.AccessibilityDetectionService;
 import org.iclassq.accessibility.DisabilityDetector;
-import org.iclassq.accessibility.ml.DetectionResponse;
 import org.iclassq.config.ServiceFactory;
 import org.iclassq.controller.voice.IdentificationVoiceHelper;
 import org.iclassq.model.domain.SessionData;
@@ -26,8 +26,9 @@ public class IdentificationController {
     private final Logger logger = Logger.getLogger(IdentificationController.class.getName());
     private Map<String, Integer> documentTypesMap = new HashMap<>();
 
-    private final VoiceAssistant voiceAssistant = new VoiceAssistant();
-    private final IdentificationVoiceHelper voiceHelper = new IdentificationVoiceHelper(voiceAssistant);
+    private final VoiceAssistant voiceAssistant;
+    private final IdentificationVoiceHelper voiceHelper;
+
     private boolean isInitialLoad = true;
 
     public IdentificationController(IdentificationView view) {
@@ -37,133 +38,130 @@ public class IdentificationController {
         view.setOnTypeDocumentChange(this::handleTypeDocumentChange);
         view.setOnDelete(this::handleDelete);
         view.setOnDeleteAll(this::handleDeleteAll);
-        executeDisabilityDetection();
+
+        voiceAssistant = new VoiceAssistant();
+        voiceHelper = new IdentificationVoiceHelper(voiceAssistant);
+
+        if (voiceAssistant.isReady()) {
+            logger.info("VoiceAssistant READY (servicios preparados en background)");
+        } else {
+            logger.info("VoiceAssistant no disponible (VoiceManager no inicializado)");
+        }
+
+        executeDisabilityDetectionReactive();
+
         loadDocumentTypes();
     }
 
-    private void executeDisabilityDetection() {
-        if (!KioskoApplication.isDisabilityDetectorAvailable()) {
-            logger.warning("Sistema de detección no disponible - continuar sin detección");
+    private void executeDisabilityDetectionReactive() {
+        logger.info("Ejecutando detección de discapacidad...");
 
-            Platform.runLater(() -> {
-                DisabilityDetector detector = KioskoApplication.getDisabilityDetector();
-                if (detector != null) {
-                    detector.getAccessibilityManager().disableAccessibility();
-                }
-                SessionData.getInstance().setEsPreferencial(false);
-            });
+        DisabilityDetector detector = KioskoApplication.getDisabilityDetector();
 
+        if (detector == null) {
+            logger.warning("DisabilityDetector no disponible - modo visual");
             return;
         }
 
-        logger.info("Ejecutando detección de discapacidad...");
+        AccessibilityDetectionService detectionService = detector.getDetectionService();
 
-        new Thread(() -> {
-            try {
-                DisabilityDetector detector = KioskoApplication.getDisabilityDetector();
+        detectionService.onReady(ready -> {
+            logger.info("Sistema de detección listo, iniciando análisis...");
 
-                if (detector == null) {
-                    logger.warning("Detector no disponible");
-                    return;
-                }
-
-                DetectionResponse response = detector.detect();
-
-                if (response.isSuccess()) {
-                    if (response.isDisabilityDetected()) {
-                        logger.info("Persona con discapacidad detectada");
-                        logger.info(String.format("   Tipo: %s", response.getDisabilityType()));
-                        logger.info(String.format("   Carnet: %d", response.getTotalDetections("card")));
-                        logger.info(String.format("   Muletas: %d", response.getTotalDetections("crutch")));
-                        logger.info(String.format("   Lentes: %d", response.getTotalDetections("sunglasses")));
-
+            detectionService.detectAndActivateAsync()
+                    .thenAccept(activated -> {
                         Platform.runLater(() -> {
-                            detector.getAccessibilityManager().enableAccessibility();
-                            logger.info("Servicios de accesibilidad ACTIVADOS");
+                            if (activated) {
+                                logger.info("Persona con discapacidad detectada");
+                                activateVoiceServices();
+
+                            } else {
+                                logger.info("Persona sin discapacidad detectada");
+                                logger.info("Modo visual normal");
+                                logger.info("VoiceAssistant permanece READY pero no ACTIVE");
+                            }
                         });
-
-                        SessionData.getInstance().setEsPreferencial(true);
-
-                    } else {
-                        logger.info("Persona sin discapacidad detectada");
-
+                    })
+                    .exceptionally(error -> {
+                        logger.severe("Error en detección: " + error.getMessage());
                         Platform.runLater(() -> {
-                            detector.getAccessibilityManager().disableAccessibility();
-                            logger.info("Servicios de accesibilidad DESACTIVADOS");
+                            Message.showError(
+                                    "Error de Detección",
+                                    "No se pudo completar la detección. Continuando en modo normal."
+                            );
                         });
-
-                        SessionData.getInstance().setEsPreferencial(false);
-                    }
-                } else {
-                    logger.warning("Detección falló: " + response.getError());
-
-                    Platform.runLater(() -> {
-                        detector.getAccessibilityManager().disableAccessibility();
-                        SessionData.getInstance().setEsPreferencial(false);
+                        return null;
                     });
-                }
-
-            } catch (Exception e) {
-                logger.severe("Error en detección: " + e.getMessage());
-                e.printStackTrace();
-
-                Platform.runLater(() -> {
-                    DisabilityDetector detector = KioskoApplication.getDisabilityDetector();
-                    if (detector != null) {
-                        detector.getAccessibilityManager().disableAccessibility();
-                    }
-                    SessionData.getInstance().setEsPreferencial(false);
-                });
-            }
-
-        }, "DisabilityDetection-IdentificationView").start();
+        });
     }
 
+    private void activateVoiceServices() {
+        if (!voiceAssistant.isReady()) {
+            logger.warning("No se puede activar voz: servicios no disponibles");
+            return;
+        }
+
+        if (voiceAssistant.isActive()) {
+            logger.info("Servicios de voz ya están activos");
+            return;
+        }
+
+        logger.info("Activando servicios de voz...");
+
+        boolean activated = voiceAssistant.activate();
+
+        if (activated) {
+            logger.info("Servicios de voz ACTIVADOS");
+            setupVoiceCommandsIfNeeded();
+        } else {
+            logger.warning("No se pudieron activar servicios de voz");
+        }
+    }
+
+    private void setupVoiceCommandsIfNeeded() {
+        if (!voiceAssistant.isActive()) {
+            logger.fine("Voz no activa, omitiendo configuración de comandos");
+            return;
+        }
+
+        List<TipoDocumentoDTO> types = view.getTypeDocument().getItems().stream()
+                .map(desc -> {
+                    Integer id = documentTypesMap.get(desc);
+                    return new TipoDocumentoDTO(id, desc);
+                })
+                .toList();
+
+        if (!types.isEmpty()) {
+            setupVoiceCommands(types);
+        }
+    }
 
     private void loadDocumentTypes() {
-        view.getTypeDocument().setDisable(true);
-        view.getBtnNext().setDisable(true);
-
         new Thread(() -> {
             try {
                 List<TipoDocumentoDTO> list = tipoDocumentoService.getAll();
 
                 Platform.runLater(() -> {
                     populateDocumentTypes(list);
-                    view.getTypeDocument().setDisable(false);
-                    view.getBtnNext().setDisable(false);
 
-                    setupVoiceCommands(list);
+                    if (voiceAssistant.isActive()) {
+                        setupVoiceCommands(list);
+                    }
+
                     isInitialLoad = false;
                 });
+
             } catch (Exception e) {
-                logger.severe(e.getMessage());
-                Platform.runLater(() -> {
-                    Message.showError("Error de conexión",
-                            "No se pudieron cargar los tipos de documento.");
-                    view.getTypeDocument().setDisable(false);
-                    view.getBtnNext().setDisable(false);
-                });
+                logger.severe("Error al cargar tipos de documento: " + e.getMessage());
+
+                Platform.runLater(() ->
+                        Message.showError(
+                                "Error al cargar datos",
+                                "No se pudieron cargar los tipos de documento"
+                        )
+                );
             }
         }).start();
-    }
-
-    private void handleTypeDocumentChange() {
-        String tipoDocDescripcion = view.getTypeDocument().getValue();
-
-        if (tipoDocDescripcion == null || tipoDocDescripcion.isEmpty()) {
-            return;
-        }
-
-        Integer tipoDocId = documentTypesMap.get(tipoDocDescripcion);
-
-        if (tipoDocId != null) {
-            view.updateDocumentConfig(tipoDocId);
-
-            if (!isInitialLoad) {
-                voiceHelper.announceDocumentTypeSelected(tipoDocDescripcion);
-            }
-        }
     }
 
     private void handleNext() {
@@ -175,12 +173,17 @@ public class IdentificationController {
                     "Tipo de documento requerido",
                     "Por favor seleccione un tipo de documento"
             );
-            voiceHelper.announceValidationError("Por favor seleccione un tipo de documento");
+
+            if (voiceAssistant.isActive()) {
+                voiceHelper.announceValidationError("Por favor seleccione un tipo de documento");
+            }
             return;
         }
 
         if (!view.isValid()) {
-            voiceHelper.announceValidationError("El documento ingresado no es válido");
+            if (voiceAssistant.isActive()) {
+                voiceHelper.announceValidationError("El documento ingresado no es válido");
+            }
             return;
         }
 
@@ -200,18 +203,25 @@ public class IdentificationController {
                         "Documento inválido",
                         view.getCurrentConfig().getLengthErrorMessage()
                 );
-                voiceHelper.announceValidationError(view.getCurrentConfig().getLengthErrorMessage());
+
+                if (voiceAssistant.isActive()) {
+                    voiceHelper.announceValidationError(view.getCurrentConfig().getLengthErrorMessage());
+                }
                 return;
             }
         }
 
-        voiceAssistant.stopSpeaking();
+        if (voiceAssistant.isActive()) {
+            voiceAssistant.stopSpeaking();
+        }
 
         SessionData.getInstance().setTipoDocumento(tipoDocId);
         SessionData.getInstance().setTipoDocumentoDescripcion(tipoDocDescripcion);
         SessionData.getInstance().setNumeroDocumento(numeroDoc);
 
-        voiceHelper.announceNavigation();
+        if (voiceAssistant.isActive()) {
+            voiceHelper.announceNavigation();
+        }
 
         new Thread(() -> {
             try {
@@ -221,7 +231,10 @@ public class IdentificationController {
             }
 
             Platform.runLater(() -> {
-                voiceAssistant.cleanup();
+                if (voiceAssistant.isActive()) {
+                    voiceAssistant.deactivate();
+                }
+
                 Navigator.navigateToGroups();
             });
         }).start();
@@ -231,13 +244,19 @@ public class IdentificationController {
         String currentText = view.getDocumentNumber().getText();
         if (!currentText.isEmpty()) {
             view.getDocumentNumber().setText(currentText.substring(0, currentText.length() - 1));
-            voiceHelper.announcedDeleted();
+
+            if (voiceAssistant.isActive()) {
+                voiceHelper.announcedDeleted();
+            }
         }
     }
 
     private void handleDeleteAll() {
         view.getDocumentNumber().clear();
-        voiceHelper.announceDeletedAll();
+
+        if (voiceAssistant.isActive()) {
+            voiceHelper.announceDeletedAll();
+        }
     }
 
     private void populateDocumentTypes(List<TipoDocumentoDTO> list) {
@@ -256,9 +275,12 @@ public class IdentificationController {
     }
 
     private void setupVoiceCommands(List<TipoDocumentoDTO> list) {
-        if (!voiceAssistant.isEnabled()) {
+        if (!voiceAssistant.isActive()) {
+            logger.fine("Voz no activa, omitiendo configuración de comandos");
             return;
         }
+
+        logger.info("Configurando comandos de voz...");
 
         voiceHelper.announceDocumentTypes(list);
         voiceHelper.registerDocumentTypeCommands(list, this::selectDocumentTypeByVoice);
@@ -277,10 +299,30 @@ public class IdentificationController {
         voiceHelper.registerDeleteCommand(this::handleDelete);
         voiceHelper.registerDeleteAllCommand(this::handleDeleteAll);
         voiceAssistant.enableGrammar();
+
+        logger.info("Comandos de voz configurados");
     }
 
     private void selectDocumentTypeByVoice(TipoDocumentoDTO docType) {
         view.getTypeDocument().setValue(docType.getDescripcion());
         view.getDocumentNumber().requestFocus();
+    }
+
+    private void handleTypeDocumentChange() {
+        String tipoDocDescripcion = view.getTypeDocument().getValue();
+
+        if (tipoDocDescripcion == null || tipoDocDescripcion.isEmpty()) {
+            return;
+        }
+
+        Integer tipoDocId = documentTypesMap.get(tipoDocDescripcion);
+
+        if (tipoDocId != null) {
+            view.updateDocumentConfig(tipoDocId);
+
+            if (!isInitialLoad && voiceAssistant.isActive()) {
+                voiceHelper.announceDocumentTypeSelected(tipoDocDescripcion);
+            }
+        }
     }
 }

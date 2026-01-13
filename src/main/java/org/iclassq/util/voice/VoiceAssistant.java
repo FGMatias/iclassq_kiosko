@@ -3,7 +3,6 @@ package org.iclassq.util.voice;
 import javafx.application.Platform;
 import org.iclassq.accessibility.voice.VoiceManager;
 
-import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
@@ -14,31 +13,77 @@ public class VoiceAssistant {
     private final VoiceManager voiceManager;
     private final Map<String, Runnable> commandHandlers = new HashMap<>();
     private Consumer<String> numberHandler = null;
-    private boolean enabled = false;
+    private boolean ready = false;
+    private boolean active = false;
 
     public VoiceAssistant() {
         this.voiceManager = VoiceManager.getInstance();
-        initialize();
-    }
 
-    private void initialize() {
-        try {
-            if (voiceManager != null && voiceManager.isVoiceServicesEnabled()) {
-                enabled = true;
-                voiceManager.startListening();
-                voiceManager.addTextRecognizedListener(this::handleRecognizedText);
-                logger.info("VoiceAssistant activado");
-            } else {
-                logger.info("VoiceAssistant desactivado (VoiceManager no disponible)");
-            }
-        } catch (Exception e) {
-            logger.warning("No se pudo activar VoiceAssistant: " + e.getMessage());
-            enabled = false;
+        if (voiceManager != null && voiceManager.isVoiceServicesEnabled()) {
+            ready = true;
+            logger.info("VoiceAssistant READY (servicios disponibles pero inactivos");
+        } else {
+            ready = false;
+            logger.info("VoiceAssistant NOT READY (VoiceManager no disponible");
         }
     }
 
+    public boolean activate() {
+        if (!ready) {
+            logger.warning("No se puede activar VoiceAssistant: servicios no disponibles");
+            return false;
+        }
+
+        if (active) {
+            logger.info("VoiceAssistant ya está activo");
+            return true;
+        }
+
+        try {
+            logger.info("Activando VoiceAssistant...");
+
+            voiceManager.startListening();
+            voiceManager.addTextRecognizedListener(this::handleRecognizedText);
+
+            active = true;
+
+            logger.info("VoiceAssistant ACTIVADO (hablando y escuchando)");
+            return true;
+
+        } catch (Exception e) {
+            logger.warning("Error al activar VoiceAssistant: " + e.getMessage());
+            active = false;
+            return false;
+        }
+    }
+
+    public void deactivate() {
+        if (!active) {
+            logger.fine("VoiceAssistant ya está inactivo");
+            return;
+        }
+
+        try {
+            logger.info("🔇 Desactivando VoiceAssistant...");
+
+            disableGrammar();
+            voiceManager.stopListening();
+            voiceManager.clearListener();
+            commandHandlers.clear();
+            numberHandler = null;
+
+            active = false;
+
+            logger.info("VoiceAssistant DESACTIVADO (servicios siguen disponibles)");
+
+        } catch (Exception e) {
+            logger.warning("Error al desactivar VoiceAssistant: " + e.getMessage());
+        }
+    }
+
+
     public void speak(String message) {
-        if (!enabled || message == null || message.isEmpty()) {
+        if (!active || message == null || message.isEmpty()) {
             return;
         }
 
@@ -50,7 +95,7 @@ public class VoiceAssistant {
     }
 
     public void stopSpeaking() {
-        if (!enabled) return;
+        if (!active) return;
 
         try {
             voiceManager.stopSpeaking();
@@ -61,7 +106,7 @@ public class VoiceAssistant {
     }
 
     public void registerCommand(String keywords, Runnable action) {
-        if (!enabled) return;
+        if (!ready) return;
 
         String[] keywordArray = keywords.toLowerCase().split(",");
         for (String keyword : keywordArray) {
@@ -70,7 +115,7 @@ public class VoiceAssistant {
     }
 
     public void enableGrammar() {
-        if (!enabled || commandHandlers.isEmpty()) return;
+        if (!active || commandHandlers.isEmpty()) return;
 
         Set<String> allWords = new LinkedHashSet<>();
 
@@ -99,14 +144,14 @@ public class VoiceAssistant {
     }
 
     public void disableGrammar() {
-        if (!enabled) return;
+        if (!active) return;
 
         voiceManager.clearExpectedWords();
         logger.info("GRAMATICA DESACTIVADA - reconocimiento general");
     }
 
     public void onNumberRecognized(Consumer<String> handler) {
-        if (!enabled) return;
+        if (!ready) return;
         this.numberHandler = handler;
         logger.info("Handler de numeros registrado");
     }
@@ -117,22 +162,16 @@ public class VoiceAssistant {
         disableGrammar();
     }
 
-    public boolean isEnabled() {
-        return enabled;
+    public boolean isReady() {
+        return ready;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 
     public void cleanup() {
-        if (!enabled) return;
-
-        try {
-            disableGrammar();
-            voiceManager.stopListening();
-            voiceManager.clearListener();
-            commandHandlers.clear();
-            numberHandler = null;
-        } catch (Exception e) {
-            logger.warning("Error en cleanup: " + e.getMessage());
-        }
+        deactivate();
     }
 
     private void handleRecognizedText(String text) {
@@ -156,15 +195,14 @@ public class VoiceAssistant {
         if (!commandFound && numberHandler != null) {
             String numbers = extractNumbers(text);
             if (!numbers.isEmpty()) {
-                logger.info("Numeros extraidos: '" + numbers + "'");
-                String finalNumbers = numbers;
-                Platform.runLater(() -> numberHandler.accept(finalNumbers));
+                logger.info("Números extraídos: '" + numbers + "'");
+                Platform.runLater(() -> numberHandler.accept(numbers));
                 return;
             }
         }
 
         if (!commandFound) {
-            logger.info("No se encontro comando ni numeros en: '" + normalized + "'");
+            logger.fine("No se encontró comando para: '" + normalized + "'");
         }
     }
 
@@ -180,28 +218,25 @@ public class VoiceAssistant {
     }
 
     private String extractNumbers(String text) {
-        StringBuilder numbers = new StringBuilder();
-
-        Map<String, String> numberWords = new HashMap<>();
-        numberWords.put("cero", "0");
-        numberWords.put("uno", "1");
-        numberWords.put("dos", "2");
-        numberWords.put("tres", "3");
-        numberWords.put("cuatro", "4");
-        numberWords.put("cinco", "5");
-        numberWords.put("seis", "6");
-        numberWords.put("siete", "7");
-        numberWords.put("ocho", "8");
-        numberWords.put("nueve", "9");
-
         String normalized = normalizeText(text);
         String[] words = normalized.split("\\s+");
+        StringBuilder numbers = new StringBuilder();
+
+        Map<String, String> numberMap = new HashMap<>();
+        numberMap.put("cero", "0");
+        numberMap.put("uno", "1");
+        numberMap.put("dos", "2");
+        numberMap.put("tres", "3");
+        numberMap.put("cuatro", "4");
+        numberMap.put("cinco", "5");
+        numberMap.put("seis", "6");
+        numberMap.put("siete", "7");
+        numberMap.put("ocho", "8");
+        numberMap.put("nueve", "9");
 
         for (String word : words) {
-            if (numberWords.containsKey(word)) {
-                numbers.append(numberWords.get(word));
-            } else if (word.matches("\\d+")) {
-                numbers.append(word);
+            if (numberMap.containsKey(word)) {
+                numbers.append(numberMap.get(word));
             }
         }
 
