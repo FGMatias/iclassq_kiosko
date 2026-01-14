@@ -1,13 +1,12 @@
 package org.iclassq.controller;
 
 import javafx.application.Platform;
+import org.iclassq.accessibility.adapter.GruposVoiceAdapter;
 import org.iclassq.config.ServiceFactory;
-import org.iclassq.controller.voice.GruposVoiceHelper;
 import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.response.GrupoDTO;
 import org.iclassq.navigation.Navigator;
 import org.iclassq.service.GrupoService;
-import org.iclassq.util.voice.VoiceAssistant;
 import org.iclassq.view.GruposView;
 import org.iclassq.view.components.Message;
 
@@ -25,20 +24,28 @@ public class GruposController {
     private Future<?> currentTask;
     private final Logger logger = Logger.getLogger(GruposController.class.getName());
 
-    private final VoiceAssistant voiceAssistant = new VoiceAssistant();
-    private final GruposVoiceHelper voiceHelper = new GruposVoiceHelper(voiceAssistant);
-    private boolean isInitialLoad = true;
+    private final GruposVoiceAdapter voiceAdapter;
 
+    private boolean isInitialLoad = true;
     private List<GrupoDTO> allGroups;
 
     public GruposController(GruposView view) {
         this.view = view;
         this.grupoService = ServiceFactory.getGrupoService();
 
+        this.voiceAdapter = new GruposVoiceAdapter(view);
+
         view.setOnGroupSelected(this::handleGrupoSelected);
         view.setOnNextPage(this::handleNextPage);
         view.setOnPreviousPage(this::handlePreviousPage);
         view.setOnBack(this::handleBack);
+
+        voiceAdapter.registerNavigationCommands(
+                view::goToPreviousPage,
+                view::goToNextPage,
+                this::handleBackVoice
+        );
+
         loadGroups();
     }
 
@@ -61,7 +68,9 @@ public class GruposController {
                     view.setGroups(groups);
 
                     this.allGroups = groups;
-                    setupVoiceCommands(groups);
+
+                    voiceAdapter.onGroupsLoaded(groups);
+
                     isInitialLoad = false;
                 });
 
@@ -89,49 +98,11 @@ public class GruposController {
         });
     }
 
-    private void setupVoiceCommands(List<GrupoDTO> groups) {
-        if (!voiceAssistant.isEnabled() || groups == null || groups.isEmpty()) {
-            return;
-        }
-
-        String numeroDocumento = SessionData.getInstance().getNumeroDocumento();
-        int currentPage = view.getCurrentPage();
-        int totalPages = view.getTotalPages();
-
-        voiceHelper.announceGroups(numeroDocumento, groups, currentPage, totalPages);
-
-        voiceHelper.registerGroupCommands(groups, this::selectGroupByVoice);
-        voiceHelper.registerPreviousPageCommand(this::handlePreviousPageVoice);
-        voiceHelper.registerNextPageCommand(this::handleNextPageVoice);
-        voiceHelper.registerBackCommand(this::handleBackVoice);
-        voiceAssistant.enableGrammar();
-
-        logger.info("Gramática activada para grupos");
-    }
-
-    private void selectGroupByVoice(GrupoDTO grupo) {
-        voiceAssistant.stopSpeaking();
-        voiceHelper.announceGroupSelected(grupo.getNombre());
-
-        new Thread(() -> {
-            try {
-                Thread.sleep(800);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-            Platform.runLater(() -> {
-                handleGrupoSelected(grupo);
-            });
-        }).start();
-    }
-
     private void handleGrupoSelected(GrupoDTO grupo) {
         try {
-            voiceAssistant.stopSpeaking();
-            voiceHelper.announceNavigation();
-
             SessionData.getInstance().setGrupo(grupo);
+
+            voiceAdapter.onNavigating();
 
             new Thread(() -> {
                 try {
@@ -140,10 +111,7 @@ public class GruposController {
                     Thread.currentThread().interrupt();
                 }
 
-                Platform.runLater(() -> {
-                    voiceAssistant.cleanup();
-                    Navigator.navigateToSubGroups();
-                });
+                Platform.runLater(() -> Navigator.navigateToSubGroups());
             }).start();
 
         } catch (Exception e) {
@@ -156,19 +124,11 @@ public class GruposController {
     }
 
     private void handleNextPage() {
-        voiceHelper.announcePageChange(view.getCurrentPage(), view.getTotalPages());
+        voiceAdapter.onPageChanged();
     }
 
     private void handlePreviousPage() {
-        voiceHelper.announcePageChange(view.getCurrentPage(), view.getTotalPages());
-    }
-
-    private void handleNextPageVoice() {
-        view.goToNextPage();
-    }
-
-    private void handlePreviousPageVoice() {
-        view.goToPreviousPage();
+        voiceAdapter.onPageChanged();
     }
 
     private void handleBack() {
@@ -176,8 +136,7 @@ public class GruposController {
     }
 
     private void handleBackVoice() {
-        voiceAssistant.stopSpeaking();
-        voiceHelper.announceBack();
+        voiceAdapter.onGoingBack();
 
         new Thread(() -> {
             try {
@@ -186,10 +145,7 @@ public class GruposController {
                 Thread.currentThread().interrupt();
             }
 
-            Platform.runLater(() -> {
-                voiceAssistant.cleanup();
-                Navigator.navigateToIdentification();
-            });
+            Platform.runLater(() -> Navigator.navigateToIdentification());
         }).start();
     }
 
@@ -197,7 +153,6 @@ public class GruposController {
         if (currentTask != null && !currentTask.isDone()) {
             currentTask.cancel(true);
         }
-        voiceAssistant.cleanup();
         executor.shutdown();
     }
 }

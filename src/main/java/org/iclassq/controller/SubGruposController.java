@@ -1,9 +1,8 @@
 package org.iclassq.controller;
 
 import javafx.application.Platform;
+import org.iclassq.accessibility.adapter.SubGruposVoiceAdapter;
 import org.iclassq.config.ServiceFactory;
-import org.iclassq.controller.voice.SubGruposVoiceHelper;
-import org.iclassq.controller.voice.TicketVoiceHelper;
 import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.request.TicketRequestDTO;
 import org.iclassq.model.dto.response.SubGrupoDTO;
@@ -11,7 +10,6 @@ import org.iclassq.model.dto.response.TicketResponseDTO;
 import org.iclassq.navigation.Navigator;
 import org.iclassq.service.SubGrupoService;
 import org.iclassq.service.TicketService;
-import org.iclassq.util.voice.VoiceAssistant;
 import org.iclassq.view.SubGruposView;
 import org.iclassq.view.components.Message;
 
@@ -31,11 +29,9 @@ public class SubGruposController {
     private Future<?> currentGenerateTask;
     private final Logger logger = Logger.getLogger(SubGruposController.class.getName());
 
-    private final VoiceAssistant voiceAssistant = new VoiceAssistant();
-    private final SubGruposVoiceHelper voiceHelper = new SubGruposVoiceHelper(voiceAssistant);
-    private final TicketVoiceHelper ticketVoiceHelper = new TicketVoiceHelper(voiceAssistant);
-    private boolean isInitialLoad = true;
+    private final SubGruposVoiceAdapter voiceAdapter;
 
+    private boolean isInitialLoad = true;
     private List<SubGrupoDTO> allSubGroups;
 
     public SubGruposController(SubGruposView view) {
@@ -43,10 +39,19 @@ public class SubGruposController {
         this.subGrupoService = ServiceFactory.getSubGrupoService();
         this.ticketService = ServiceFactory.getTicketService();
 
+        this.voiceAdapter = new SubGruposVoiceAdapter(view);
+
         view.setOnSubGroupSelected(this::handleSubGroupSelected);
         view.setOnNextPage(this::handleNextPage);
         view.setOnPreviousPage(this::handlePreviousPage);
         view.setOnBack(this::handleBack);
+
+        voiceAdapter.registerNavigationCommands(
+                view::goToPreviousPage,
+                view::goToNextPage,
+                this::handleBackVoice
+        );
+
         loadSubGroups();
     }
 
@@ -62,6 +67,7 @@ public class SubGruposController {
                 SessionData session = SessionData.getInstance();
                 Integer sucursalId = session.getSucursalId();
                 Integer grupoId = session.getGrupo().getId();
+
                 List<SubGrupoDTO> subGroups = subGrupoService.getByGrupo(sucursalId, grupoId);
 
                 Platform.runLater(() -> {
@@ -69,11 +75,14 @@ public class SubGruposController {
                     view.setSubGroups(subGroups);
 
                     this.allSubGroups = subGroups;
-                    setupVoiceCommands(subGroups);
+
+                    voiceAdapter.onSubGroupsLoaded(subGroups);
+
                     isInitialLoad = false;
                 });
+
             } catch (IOException e) {
-                logger.severe("Error de conexión al cargar los subgrupos" + e);
+                logger.severe("Error de conexión: " + e.getMessage());
                 Platform.runLater(() -> {
                     view.hideLoading();
                     Message.showError(
@@ -94,44 +103,6 @@ public class SubGruposController {
         });
     }
 
-    private void setupVoiceCommands(List<SubGrupoDTO> subGroups) {
-        if (!voiceAssistant.isEnabled() || subGroups == null || subGroups.isEmpty()) {
-            return;
-        }
-
-        String nombreGrupo = SessionData.getInstance().getGrupo().getNombre();
-        int currentPage = view.getCurrentPage();
-        int totalPages = view.getTotalPages();
-
-        voiceHelper.announceSubGroups(nombreGrupo, subGroups, currentPage, totalPages);
-
-        voiceHelper.registerSubGroupCommands(subGroups, this::selectSubGroupByVoice);
-        voiceHelper.registerPreviousPageCommand(this::handlePreviousPageVoice);
-        voiceHelper.registerNextPageCommand(this::handleNextPageVoice);
-        voiceHelper.registerBackCommand(this::handleBackVoice);
-        voiceAssistant.enableGrammar();
-
-        logger.info("Gramática activada para subgrupos");
-    }
-
-    private void selectSubGroupByVoice(SubGrupoDTO subGrupo) {
-        voiceAssistant.stopSpeaking();
-
-        voiceHelper.announceSubGroupSelected(subGrupo.getVNombreSubGrupo());
-
-        new Thread(() -> {
-            try {
-                Thread.sleep(800);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-            Platform.runLater(() -> {
-                handleSubGroupSelected(subGrupo);
-            });
-        }).start();
-    }
-
     private void handleSubGroupSelected(SubGrupoDTO subGrupo) {
         if (currentGenerateTask != null && !currentGenerateTask.isDone()) {
             return;
@@ -139,7 +110,7 @@ public class SubGruposController {
 
         view.showLoading();
 
-        voiceAssistant.stopSpeaking();
+        voiceAdapter.onGeneratingTicket();
 
         currentGenerateTask = executor.submit(() -> {
             try {
@@ -148,9 +119,6 @@ public class SubGruposController {
 
                 Platform.runLater(() -> {
                     view.hideLoading();
-
-                    voiceAssistant.cleanup();
-
                     Navigator.navigatoToTicket(ticket);
                 });
 
@@ -192,19 +160,11 @@ public class SubGruposController {
     }
 
     private void handleNextPage() {
-        voiceHelper.announcePageChanged(view.getCurrentPage(), view.getTotalPages());
+        voiceAdapter.onPageChanged();
     }
 
     private void handlePreviousPage() {
-        voiceHelper.announcePageChanged(view.getCurrentPage(), view.getTotalPages());
-    }
-
-    private void handleNextPageVoice() {
-        view.goToNextPage();
-    }
-
-    private void handlePreviousPageVoice() {
-        view.goToPreviousPage();
+        voiceAdapter.onPageChanged();
     }
 
     private void handleBack() {
@@ -212,8 +172,7 @@ public class SubGruposController {
     }
 
     private void handleBackVoice() {
-        voiceAssistant.stopSpeaking();
-        voiceHelper.announceBack();
+        voiceAdapter.onGoingBack();
 
         new Thread(() -> {
             try {
@@ -222,10 +181,7 @@ public class SubGruposController {
                 Thread.currentThread().interrupt();
             }
 
-            Platform.runLater(() -> {
-                voiceAssistant.cleanup();
-                Navigator.navigateToGroups();
-            });
+            Platform.runLater(() -> Navigator.navigateToGroups());
         }).start();
     }
 
@@ -236,7 +192,6 @@ public class SubGruposController {
         if (currentGenerateTask != null && !currentGenerateTask.isDone()) {
             currentGenerateTask.cancel(true);
         }
-        voiceAssistant.cleanup();
         executor.shutdown();
     }
 }

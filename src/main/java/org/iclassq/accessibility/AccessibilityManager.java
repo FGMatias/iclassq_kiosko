@@ -1,6 +1,6 @@
 package org.iclassq.accessibility;
 
-import lombok.Getter;
+import org.iclassq.accessibility.voice.VoiceManager;
 import org.iclassq.util.voice.VoiceAssistant;
 
 import java.util.logging.Logger;
@@ -10,23 +10,11 @@ public class AccessibilityManager {
     private static final Logger logger = Logger.getLogger(AccessibilityManager.class.getName());
     private static AccessibilityManager instance;
 
-    @Getter
-    private AccessibilityMode currentMode;
+    private boolean accessibilityEnabled = false;
 
-    @Getter
-    private VoiceAssistant voiceAssistant;
-
-    @Getter
-    private boolean voiceEnabled;
-
-    @Getter
-    private boolean brailleEnabled;
+    private VoiceAssistant voiceAssistant = null;
 
     private AccessibilityManager() {
-        this.currentMode = AccessibilityMode.NORMAL;
-        this.voiceEnabled = false;
-        this.brailleEnabled = false;
-
         logger.info("AccessibilityManager inicializado");
     }
 
@@ -38,59 +26,74 @@ public class AccessibilityManager {
     }
 
     public void enableAccessibility() {
-        logger.info("Activando servicios de accesibilidad...");
+        if (accessibilityEnabled) {
+            logger.info("Servicios de accesibilidad ya están habilitados");
+            return;
+        }
 
-        currentMode = AccessibilityMode.ACCESSIBLE;
+        logger.info("Habilitando servicios de accesibilidad...");
 
-        enableVoice();
+        if (voiceAssistant == null) {
+            voiceAssistant = new VoiceAssistant();
+        }
 
-        logger.info("Servicios de accesibilidad ACTIVADOS");
+        if (voiceAssistant.isReady()) {
+            boolean activated = voiceAssistant.activate();
+
+            if (activated) {
+                accessibilityEnabled = true;
+                logger.info("Servicios de accesibilidad HABILITADOS");
+                logger.info("   VoiceAssistant compartido ACTIVO");
+            } else {
+                logger.warning("No se pudo activar VoiceAssistant");
+                voiceAssistant = null;
+                accessibilityEnabled = false;
+            }
+        } else {
+            logger.warning("VoiceAssistant no está ready");
+            voiceAssistant = null;
+            accessibilityEnabled = false;
+        }
     }
 
     public void disableAccessibility() {
+        if (!accessibilityEnabled) {
+            logger.info("Servicios de accesibilidad ya están deshabilitados");
+            return;
+        }
+
         logger.info("Desactivando servicios de accesibilidad...");
 
-        currentMode = AccessibilityMode.NORMAL;
+        if (voiceAssistant != null && voiceAssistant.isActive()) {
+            voiceAssistant.deactivate();
+        }
 
-        disableVoice();
+        accessibilityEnabled = false;
 
         logger.info("Servicios de accesibilidad DESACTIVADOS");
     }
 
-    private void enableVoice() {
-        try {
-            if (voiceAssistant == null) {
-                voiceAssistant = new VoiceAssistant();
-            }
-
-            voiceEnabled = true;
-
-            logger.info("Servicio de VOZ activado");
-
-        } catch (Exception e) {
-            logger.severe("Error activando servicio de voz: " + e.getMessage());
-            voiceEnabled = false;
-        }
-    }
-
-    private void disableVoice() {
-        try {
-            if (voiceAssistant != null) {
-                voiceAssistant.stopSpeaking();
-                voiceAssistant.cleanup();
-            }
-
-            voiceEnabled = false;
-
-            logger.info("Servicio de VOZ desactivado");
-
-        } catch (Exception e) {
-            logger.severe("Error desactivando servicio de voz: " + e.getMessage());
-        }
-    }
-
     public boolean isAccessibilityEnabled() {
-        return currentMode == AccessibilityMode.ACCESSIBLE;
+        return accessibilityEnabled;
+    }
+
+    public VoiceAssistant getVoiceAssistant() {
+        return voiceAssistant;
+    }
+
+    public boolean isVoiceActive() {
+        return voiceAssistant != null && voiceAssistant.isActive();
+    }
+
+    public void reset() {
+        if (voiceAssistant != null && voiceAssistant.isActive()) {
+            voiceAssistant.deactivate();
+        }
+
+        voiceAssistant = null;
+        accessibilityEnabled = false;
+
+        logger.info("AccessibilityManager reseteado");
     }
 
     public String getStatusInfo() {
@@ -98,21 +101,17 @@ public class AccessibilityManager {
         sb.append("\n═══════════════════════════════════════\n");
         sb.append("ACCESSIBILITY MANAGER STATUS\n");
         sb.append("═══════════════════════════════════════\n");
-        sb.append(String.format("Modo actual: %s\n", currentMode));
-        sb.append(String.format("Voz: %s\n", voiceEnabled ? "Activa" : "Inactiva"));
-        sb.append(String.format("Braille: %s (futuro)\n", brailleEnabled ? "Activa" : "Inactiva"));
+        sb.append(String.format("Accesibilidad: %s\n",
+                accessibilityEnabled ? "HABILITADA" : "DESHABILITADA"));
+        sb.append(String.format("VoiceAssistant: %s\n",
+                voiceAssistant != null ? "DISPONIBLE" : "NULL"));
+        sb.append(String.format("Voz Activa: %s\n",
+                isVoiceActive() ? "SÍ" : "NO"));
         sb.append("═══════════════════════════════════════\n");
         return sb.toString();
     }
 
     public void printStatus() {
         System.out.println(getStatusInfo());
-    }
-
-    public static synchronized void reset() {
-        if (instance != null) {
-            instance.disableAccessibility();
-            instance = null;
-        }
     }
 }
