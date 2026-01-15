@@ -14,13 +14,13 @@ public class TicketVoiceAdapter {
         this.voice = AccessibilityManager.getInstance().getVoiceAssistant();
     }
 
-    public void onTicketGenerated(String codigoTicket) {
+    public void onTicketGenerated(String codigoTicket, Runnable onClose) {
         if (!isVoiceActive() || codigoTicket == null || codigoTicket.isEmpty()) {
             return;
         }
 
         announceTicket(codigoTicket);
-        registerCommands();
+        registerCommands(onClose);
         voice.enableGrammar();
 
         logger.info("Comandos de voz configurados - Código: " + codigoTicket);
@@ -59,8 +59,9 @@ public class TicketVoiceAdapter {
         voice.speak(message);
     }
 
-    private void registerCommands() {
+    private void registerCommands(Runnable onClose) {
         voice.registerCommand("cerrar,salir,finalizar,terminar", () -> {
+            onClose.run();
         });
     }
 

@@ -22,13 +22,13 @@ public class GruposVoiceAdapter {
         this.voice = AccessibilityManager.getInstance().getVoiceAssistant();
     }
 
-    public void onGroupsLoaded(List<GrupoDTO> groups) {
+    public void onGroupsLoaded(List<GrupoDTO> groups, Consumer<GrupoDTO> onGroupSelected) {
         if (!isVoiceActive() || groups == null || groups.isEmpty()) {
             return;
         }
 
         announceGroups(groups);
-        registerCommands(groups);
+        registerCommands(groups, onGroupSelected);
         voice.enableGrammar();
 
         logger.info("Comandos de voz configurados para grupos");
@@ -121,10 +121,11 @@ public class GruposVoiceAdapter {
         voice.speak(message.toString());
     }
 
-    private void registerCommands(List<GrupoDTO> groups) {
+    private void registerCommands(List<GrupoDTO> groups, Consumer<GrupoDTO> onGroupSelected) {
         for (GrupoDTO group : groups) {
             String keywords = KeywordGenerator.generateKeywords(group.getNombre().toLowerCase());
             voice.registerCommand(keywords, () -> {
+                onGroupSelected.accept(group);
             });
         }
     }

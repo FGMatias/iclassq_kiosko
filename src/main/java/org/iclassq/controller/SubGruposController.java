@@ -76,7 +76,7 @@ public class SubGruposController {
 
                     this.allSubGroups = subGroups;
 
-                    voiceAdapter.onSubGroupsLoaded(subGroups);
+                    voiceAdapter.onSubGroupsLoaded(subGroups, this::selectSubGroupByVoice);
 
                     isInitialLoad = false;
                 });
@@ -101,6 +101,10 @@ public class SubGruposController {
                 });
             }
         });
+    }
+
+    private void selectSubGroupByVoice(SubGrupoDTO subGrupo) {
+        voiceAdapter.onSubGroupSelectedByVoice(subGrupo, this::handleSubGroupSelected);
     }
 
     private void handleSubGroupSelected(SubGrupoDTO subGrupo) {

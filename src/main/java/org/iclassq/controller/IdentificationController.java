@@ -1,6 +1,7 @@
 package org.iclassq.controller;
 
 import javafx.application.Platform;
+import org.iclassq.accessibility.AccessibilityManager;
 import org.iclassq.accessibility.adapter.DisabilityDetectionAdapter;
 import org.iclassq.accessibility.adapter.IdentificationVoiceAdapter;
 import org.iclassq.config.ServiceFactory;
@@ -23,7 +24,7 @@ public class IdentificationController {
 
     private Map<String, Integer> documentTypesMap = new HashMap<>();
 
-    private final DisabilityDetectionAdapter detectionAdapter;
+//    private final DisabilityDetectionAdapter detectionAdapter;
     private final IdentificationVoiceAdapter voiceAdapter;
 
     private boolean isInitialLoad = true;
@@ -37,7 +38,8 @@ public class IdentificationController {
         view.setOnDelete(this::handleDelete);
         view.setOnDeleteAll(this::handleDeleteAll);
 
-        this.detectionAdapter = new DisabilityDetectionAdapter();
+        AccessibilityManager.getInstance().enableAccessibility();
+//        this.detectionAdapter = new DisabilityDetectionAdapter();
         this.voiceAdapter = new IdentificationVoiceAdapter();
 
         loadDocumentTypes();

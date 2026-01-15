@@ -19,17 +19,17 @@ public class SubGruposVoiceAdapter {
     private VoiceAssistant voice;
 
     public SubGruposVoiceAdapter(SubGruposView view) {
-        this.view = view;
         this.voice = AccessibilityManager.getInstance().getVoiceAssistant();
+        this.view = view;
     }
 
-    public void onSubGroupsLoaded(List<SubGrupoDTO> subGroups) {
+    public void onSubGroupsLoaded(List<SubGrupoDTO> subGroups, Consumer<SubGrupoDTO> onSubGroupSelected) {
         if (!isVoiceActive() || subGroups == null || subGroups.isEmpty()) {
             return;
         }
 
         announceSubGroups(subGroups);
-        registerCommands(subGroups);
+        registerCommands(subGroups, onSubGroupSelected);
         voice.enableGrammar();
 
         logger.info("Comandos de voz configurados para subgrupos");
@@ -112,10 +112,11 @@ public class SubGruposVoiceAdapter {
         voice.speak(message.toString());
     }
 
-    private void registerCommands(List<SubGrupoDTO> subGroups) {
+    private void registerCommands(List<SubGrupoDTO> subGroups, Consumer<SubGrupoDTO> onSubGroupSelected) {
         for (SubGrupoDTO subGrupo : subGroups) {
             String keywords = KeywordGenerator.generateKeywords(subGrupo.getVNombreSubGrupo());
             voice.registerCommand(keywords, () -> {
+                onSubGroupSelected.accept(subGrupo);
             });
         }
     }

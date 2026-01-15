@@ -69,7 +69,7 @@ public class GruposController {
 
                     this.allGroups = groups;
 
-                    voiceAdapter.onGroupsLoaded(groups);
+                    voiceAdapter.onGroupsLoaded(groups, this::selectGroupByVoice);
 
                     isInitialLoad = false;
                 });
@@ -96,6 +96,10 @@ public class GruposController {
                 });
             }
         });
+    }
+
+    private void selectGroupByVoice(GrupoDTO grupo) {
+        voiceAdapter.onGroupSelectedByVoice(grupo, this::handleGrupoSelected);
     }
 
     private void handleGrupoSelected(GrupoDTO grupo) {
