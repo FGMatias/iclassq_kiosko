@@ -1,4 +1,4 @@
-package org.iclassq.accessibility.ml;
+package org.iclassq.accessibility.detection;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;

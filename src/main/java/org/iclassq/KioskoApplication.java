@@ -5,6 +5,7 @@ import javafx.application.Application;
 import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 import org.iclassq.accessibility.DisabilityDetector;
+import org.iclassq.accessibility.proximity.ProximityDetector;
 import org.iclassq.accessibility.voice.VoiceManager;
 import org.iclassq.config.AppConfig;
 import org.iclassq.config.ServiceFactory;
@@ -17,6 +18,7 @@ import java.util.logging.Logger;
 public class KioskoApplication extends Application {
     private static final Logger logger = Logger.getLogger(KioskoApplication.class.getName());
     private static DisabilityDetector disabilityDetector;
+    private static ProximityDetector proximityDetector;
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -25,8 +27,9 @@ public class KioskoApplication extends Application {
 
         ServiceFactory.init(AppConfig.getBackendUrl());
 
-        initializeVoiceServices();
+        initializeProximityDetector(null);
         initializeDisabilityDetector();
+        initializeVoiceServices();
 
         Navigator.init(stage);
 
@@ -86,12 +89,39 @@ public class KioskoApplication extends Application {
         }, "DisabilityDetector-Init").start();
     }
 
+    public static boolean initializeProximityDetector(String portName) {
+        try {
+            logger.info("Inicializando detector de proximidad...");
+
+            proximityDetector = new ProximityDetector(portName);
+            boolean success = proximityDetector.initialize();
+
+            if (success) {
+                logger.info("Detector de proximidad inicializado");
+                return true;
+            } else {
+                logger.warning("No se pudo inicializar detector de proximidad");
+                proximityDetector = null;
+                return false;
+            }
+
+        } catch (Exception e) {
+            logger.severe("Error al inicializar detector de proximidad: " + e.getMessage());
+            proximityDetector = null;
+            return false;
+        }
+    }
+
     public static DisabilityDetector getDisabilityDetector() {
         return disabilityDetector;
     }
 
     public static boolean isDisabilityDetectorAvailable() {
         return disabilityDetector != null && disabilityDetector.isInitialized();
+    }
+
+    public static ProximityDetector getProximityDetector() {
+        return proximityDetector;
     }
 
     @Override
@@ -113,6 +143,16 @@ public class KioskoApplication extends Application {
             }
         } catch (Exception e) {
             logger.warning("Error al cerrar sistema de detección: " + e.getMessage());
+        }
+
+        try {
+            logger.info("Cerrando aplicación...");
+
+            if (proximityDetector != null) {
+                proximityDetector.shutdown();
+            }
+        } catch (Exception e) {
+            logger.severe("Error al cerrar aplicación: " + e.getMessage());
         }
 
         super.stop();

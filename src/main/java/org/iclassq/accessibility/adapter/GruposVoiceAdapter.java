@@ -88,6 +88,13 @@ public class GruposVoiceAdapter {
         voice.registerCommand("regresar,volver,atras", onBack);
     }
 
+    public void cleanup() {
+        if (!isVoiceActive()) return;
+
+        logger.info("Limpiando comandos de grupos");
+        voice.clearCommands();
+    }
+
     private void announceGroups(List<GrupoDTO> groups) {
         String numeroDocumento = SessionData.getInstance().getNumeroDocumento();
         int currentPage = view.getCurrentPage();

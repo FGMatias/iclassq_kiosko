@@ -107,6 +107,7 @@ public class GruposController {
             SessionData.getInstance().setGrupo(grupo);
 
             voiceAdapter.onNavigating();
+            voiceAdapter.cleanup();
 
             new Thread(() -> {
                 try {
@@ -141,6 +142,7 @@ public class GruposController {
 
     private void handleBackVoice() {
         voiceAdapter.onGoingBack();
+        voiceAdapter.cleanup();
 
         new Thread(() -> {
             try {
@@ -154,6 +156,8 @@ public class GruposController {
     }
 
     public void shutdown() {
+        voiceAdapter.cleanup();
+
         if (currentTask != null && !currentTask.isDone()) {
             currentTask.cancel(true);
         }

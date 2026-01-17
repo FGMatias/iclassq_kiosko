@@ -55,6 +55,8 @@ public class IdentificationVoiceAdapter {
     public void onDocumentTypeSelected(String descripcion) {
         if (!isVoiceActive()) return;
 
+        voice.stopSpeaking();
+
         String message = String.format(
                 "Has seleccionado %s. Ahora ingresa tu número de documento. " +
                 "Puedes dictarlo número por número o usar el teclado en pantalla.",
@@ -67,6 +69,7 @@ public class IdentificationVoiceAdapter {
     public void onValidationError(String errorMessage) {
         if (!isVoiceActive()) return;
 
+        voice.stopSpeaking();
         voice.speak(errorMessage);
     }
 

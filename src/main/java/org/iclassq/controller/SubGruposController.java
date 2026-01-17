@@ -115,6 +115,7 @@ public class SubGruposController {
         view.showLoading();
 
         voiceAdapter.onGeneratingTicket();
+        voiceAdapter.cleanup();
 
         currentGenerateTask = executor.submit(() -> {
             try {
@@ -177,6 +178,7 @@ public class SubGruposController {
 
     private void handleBackVoice() {
         voiceAdapter.onGoingBack();
+        voiceAdapter.cleanup();
 
         new Thread(() -> {
             try {
@@ -190,6 +192,8 @@ public class SubGruposController {
     }
 
     public void shutdown() {
+        voiceAdapter.cleanup();
+
         if (currentLoadTask != null && !currentLoadTask.isDone()) {
             currentLoadTask.cancel(true);
         }

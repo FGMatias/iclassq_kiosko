@@ -1,8 +1,8 @@
 package org.iclassq.accessibility;
 
 import org.iclassq.accessibility.camera.CameraService;
-import org.iclassq.accessibility.ml.DetectionResponse;
-import org.iclassq.accessibility.ml.MLDetectionService;
+import org.iclassq.accessibility.detection.DetectionResponse;
+import org.iclassq.accessibility.detection.DetectionService;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -22,7 +22,7 @@ public class AccessibilityDetectionService {
     private static final Logger logger = Logger.getLogger(AccessibilityDetectionService.class.getName());
 
     private final CameraService cameraService;
-    private final MLDetectionService mlService;
+    private final DetectionService mlService;
     private final AccessibilityManager accessibilityManager;
     private final ExecutorService executor;
 
@@ -31,7 +31,7 @@ public class AccessibilityDetectionService {
 
     public AccessibilityDetectionService(
             CameraService cameraService,
-            MLDetectionService mlService,
+            DetectionService mlService,
             AccessibilityManager accessibilityManager) {
         this.cameraService = cameraService;
         this.mlService = mlService;

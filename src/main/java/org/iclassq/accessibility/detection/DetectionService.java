@@ -1,4 +1,4 @@
-package org.iclassq.accessibility.ml;
+package org.iclassq.accessibility.detection;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -15,9 +15,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 @Getter
-public class MLDetectionService {
+public class DetectionService {
 
-    private static final Logger logger = Logger.getLogger(MLDetectionService.class.getName());
+    private static final Logger logger = Logger.getLogger(DetectionService.class.getName());
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
     private final String apiUrl;
@@ -25,7 +25,7 @@ public class MLDetectionService {
     private final Gson gson;
     private final double defaultConfidenceThreshold;
 
-    public MLDetectionService(String apiUrl, int timeoutSeconds, double confidenceThreshold) {
+    public DetectionService(String apiUrl, int timeoutSeconds, double confidenceThreshold) {
         this.apiUrl = apiUrl;
         this.defaultConfidenceThreshold = confidenceThreshold;
 
@@ -43,7 +43,7 @@ public class MLDetectionService {
                 apiUrl, timeoutSeconds, confidenceThreshold));
     }
 
-    public MLDetectionService() {
+    public DetectionService() {
         this("http://localhost:5000/verify-images", 15, 0.5);
     }
 

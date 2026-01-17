@@ -2,10 +2,9 @@ package org.iclassq.accessibility;
 
 import org.iclassq.accessibility.camera.CameraConfig;
 import org.iclassq.accessibility.camera.CameraService;
-import org.iclassq.accessibility.ml.DetectionResponse;
-import org.iclassq.accessibility.ml.MLDetectionService;
+import org.iclassq.accessibility.detection.DetectionResponse;
+import org.iclassq.accessibility.detection.DetectionService;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 public class DisabilityDetector {
@@ -13,13 +12,13 @@ public class DisabilityDetector {
     private static final Logger logger = Logger.getLogger(DisabilityDetector.class.getName());
 
     private final CameraService cameraService;
-    private final MLDetectionService mlService;
+    private final DetectionService mlService;
     private final AccessibilityManager accessibilityManager;
     private final AccessibilityDetectionService detectionService;
 
     private boolean initialized = false;
 
-    public DisabilityDetector(CameraService cameraService, MLDetectionService mlService) {
+    public DisabilityDetector(CameraService cameraService, DetectionService mlService) {
         this.cameraService = cameraService;
         this.mlService = mlService;
         this.accessibilityManager = AccessibilityManager.getInstance();
@@ -36,7 +35,7 @@ public class DisabilityDetector {
     public DisabilityDetector() {
         this(
                 new CameraService(CameraConfig.getDefaultMLConfig()),
-                new MLDetectionService()
+                new DetectionService()
         );
     }
 
@@ -143,7 +142,7 @@ public class DisabilityDetector {
         return cameraService;
     }
 
-    public MLDetectionService getMlService() {
+    public DetectionService getMlService() {
         return mlService;
     }
 

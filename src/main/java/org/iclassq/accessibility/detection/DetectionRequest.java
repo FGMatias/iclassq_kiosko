@@ -1,4 +1,4 @@
-package org.iclassq.accessibility.ml;
+package org.iclassq.accessibility.detection;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

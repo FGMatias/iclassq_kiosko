@@ -88,6 +88,13 @@ public class SubGruposVoiceAdapter {
         voice.registerCommand("regresar,volver,atras", onBack);
     }
 
+    public void cleanup() {
+        if (!isVoiceActive()) return;
+
+        logger.info("Limpiando comandos de subgrupos");
+        voice.clearCommands();
+    }
+
     private void announceSubGroups(List<SubGrupoDTO> subGroups) {
         String nombreGrupo = SessionData.getInstance().getGrupo().getNombre();
         int currentPage = view.getCurrentPage();

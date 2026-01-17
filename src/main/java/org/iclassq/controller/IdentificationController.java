@@ -4,6 +4,7 @@ import javafx.application.Platform;
 import org.iclassq.accessibility.AccessibilityManager;
 import org.iclassq.accessibility.adapter.DisabilityDetectionAdapter;
 import org.iclassq.accessibility.adapter.IdentificationVoiceAdapter;
+import org.iclassq.accessibility.adapter.ProximityDetectionAdapter;
 import org.iclassq.config.ServiceFactory;
 import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.response.TipoDocumentoDTO;
@@ -24,7 +25,8 @@ public class IdentificationController {
 
     private Map<String, Integer> documentTypesMap = new HashMap<>();
 
-//    private final DisabilityDetectionAdapter detectionAdapter;
+    private final DisabilityDetectionAdapter detectionAdapter;
+    private final ProximityDetectionAdapter proximityAdapter;
     private final IdentificationVoiceAdapter voiceAdapter;
 
     private boolean isInitialLoad = true;
@@ -38,9 +40,16 @@ public class IdentificationController {
         view.setOnDelete(this::handleDelete);
         view.setOnDeleteAll(this::handleDeleteAll);
 
-        AccessibilityManager.getInstance().enableAccessibility();
+//        AccessibilityManager.getInstance().enableAccessibility();
 //        this.detectionAdapter = new DisabilityDetectionAdapter();
         this.voiceAdapter = new IdentificationVoiceAdapter();
+        this.proximityAdapter = new ProximityDetectionAdapter();
+        this.proximityAdapter.onDetectionCompleted(proximityDetected -> {
+            if (!proximityDetected) {
+                logger.info("Arduino no detectó, probando con cámara...");
+                this.detectionAdapter = new DisabilityDetectionAdapter();
+            }
+        });
 
         loadDocumentTypes();
     }
