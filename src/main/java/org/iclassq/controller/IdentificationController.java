@@ -25,7 +25,7 @@ public class IdentificationController {
 
     private Map<String, Integer> documentTypesMap = new HashMap<>();
 
-    private final DisabilityDetectionAdapter detectionAdapter;
+    private DisabilityDetectionAdapter detectionAdapter;
     private final ProximityDetectionAdapter proximityAdapter;
     private final IdentificationVoiceAdapter voiceAdapter;
 

@@ -19,15 +19,16 @@ public class ProximityDetectionServiceImpl implements ProximityDetectionService 
     private boolean detecting = false;
 
     public ProximityDetectionServiceImpl() {
-        this.arduinoService = new ArduinoSerialService();
+        this.arduinoService = new ArduinoSerialServiceImpl();
     }
 
+    @Override
     public boolean initialize(String portName) {
         try {
             logger.info("Inicializando servicio de detección por proximidad...");
 
             if (portName == null || portName.isEmpty()) {
-                portName = ArduinoSerialService.findArduinoPort();
+                portName = ArduinoSerialServiceImpl.findArduinoPort();
 
                 if (portName == null) {
                     logger.warning("No se pudo auto-detectar puerto Arduino");
@@ -72,6 +73,7 @@ public class ProximityDetectionServiceImpl implements ProximityDetectionService 
         });
     }
 
+    @Override
     public CompletableFuture<Boolean> detectAsync() {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
 
@@ -106,6 +108,7 @@ public class ProximityDetectionServiceImpl implements ProximityDetectionService 
         return future;
     }
 
+    @Override
     public CompletableFuture<Boolean> detectAndActivateAsync() {
         return detectAsync()
                 .thenApply(detected -> {
@@ -119,33 +122,40 @@ public class ProximityDetectionServiceImpl implements ProximityDetectionService 
                 });
     }
 
+    @Override
     public void shutdown() {
         logger.info("Cerrando servicio de detección por proximidad...");
         detecting = false;
         arduinoService.disconnect();
     }
 
+    @Override
     public void onReady(Consumer<Boolean> callback) {
         this.readyCallback = callback;
     }
 
+    @Override
     public void onProximityUpdate(Consumer<ProximityData> callback) {
         this.updateCallback = callback;
     }
 
+    @Override
     public boolean isReady() {
         return ready;
     }
 
+    @Override
     public boolean isDetecting() {
         return detecting;
     }
 
+    @Override
     public boolean isConnected() {
         return arduinoService.isConnected();
     }
 
-    public static String[] getAvailablePorts() {
-        return ArduinoSerialService.getAvailablePorts();
+    @Override
+    public String[] getAvailablePorts() {
+        return ArduinoSerialServiceImpl.getAvailablePorts();
     }
 }

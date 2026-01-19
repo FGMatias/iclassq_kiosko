@@ -8,8 +8,7 @@ public interface ArduinoSerialService {
     void onReady(Consumer<Boolean> callback);
     void onProximityUpdate(Consumer<ProximityData> callback);
     void onDetectionComplete(Runnable callback);
+    void onDetectionCancelled(Runnable callback);
     void onReset(Runnable callback);
     boolean isConnected();
-    String[] getAvailablePorts();
-    String findArduinoPort();
 }

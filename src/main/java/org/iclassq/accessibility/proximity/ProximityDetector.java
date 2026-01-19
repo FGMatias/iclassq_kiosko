@@ -1,5 +1,8 @@
 package org.iclassq.accessibility.proximity;
 
+import org.iclassq.accessibility.proximity.impl.ArduinoSerialServiceImpl;
+import org.iclassq.accessibility.proximity.impl.ProximityDetectionServiceImpl;
+
 import java.util.logging.Logger;
 
 public class ProximityDetector {
@@ -11,7 +14,7 @@ public class ProximityDetector {
 
     public ProximityDetector(String portName) {
         this.portName = portName;
-        this.detectionService = new ProximityDetectionService();
+        this.detectionService = new ProximityDetectionServiceImpl();
     }
 
     public ProximityDetector() {
@@ -55,8 +58,7 @@ public class ProximityDetector {
         detectionService.shutdown();
     }
 
-     */
     public static String[] getAvailablePorts() {
-        return ProximityDetectionService.getAvailablePorts();
+        return ArduinoSerialServiceImpl.getAvailablePorts();
     }
 }
