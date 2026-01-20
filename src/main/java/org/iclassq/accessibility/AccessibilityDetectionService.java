@@ -77,7 +77,7 @@ public class AccessibilityDetectionService {
             }
 
             logger.info("Capturando frames de cámaras...");
-            List<BufferedImage> frames = cameraService.captureAllFramesAsList();
+            List<BufferedImage> frames = cameraService.captureSingleFrameFromAllCameras();
 
             if (frames.isEmpty()) {
                 logger.warning("No se capturaron frames");

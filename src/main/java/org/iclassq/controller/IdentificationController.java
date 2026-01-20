@@ -45,13 +45,58 @@ public class IdentificationController {
         this.voiceAdapter = new IdentificationVoiceAdapter();
         this.proximityAdapter = new ProximityDetectionAdapter();
         this.proximityAdapter.onDetectionCompleted(proximityDetected -> {
-            if (!proximityDetected) {
-                logger.info("Arduino no detectó, probando con cámara...");
+            if (proximityDetected) {
+                logger.info("Arduino detectó presencia - iniciando detección por cámara");
+
                 this.detectionAdapter = new DisabilityDetectionAdapter();
+
+            } else {
+                logger.info("Arduino no detectó presencia continua");
+                logger.info("   Usuario se retiró antes de completar 5 segundos");
+                logger.info("   Continuando en modo visual normal (sin accesibilidad)");
+
+                AccessibilityManager.getInstance().disableAccessibility();
             }
         });
 
         loadDocumentTypes();
+        initializeProximityDetection();
+    }
+
+    private void initializeProximityDetection() {
+        logger.info("Preparando inicio de detección de proximidad");
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(500);
+                Platform.runLater(() -> {
+                    logger.info("Iniciando detección de proximidad en IdentificationView");
+                    proximityAdapter.start();
+                });
+            } catch (InterruptedException e) {
+                logger.warning("Thread de inicialización interrumpido");
+                Thread.currentThread().interrupt();
+            }
+        }, "ProximityInitThread").start();
+    }
+
+    public void cleanup() {
+        logger.info("Limpiando recursos de IdentificationController");
+
+        proximityAdapter.stop();
+
+        if (detectionAdapter != null) {
+            logger.info("   Limpiando DisabilityDetectionAdapter");
+        }
+
+        logger.info("   Limpiando servicios de voz");
+        logger.info("Recursos limpiados correctamente");
+    }
+
+    public void resetProximityDetection() {
+        logger.info("Reseteando detección de proximidad para nueva sesión");
+        proximityAdapter.reset();
+        initializeProximityDetection();
     }
 
     private void loadDocumentTypes() {

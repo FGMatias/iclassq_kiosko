@@ -234,6 +234,45 @@ public class CameraService {
         return sb.toString();
     }
 
+    public List<BufferedImage> captureSingleFrameFromAllCameras() {
+        if (!initialized) {
+            logger.warning("CameraService no está inicializado");
+            return new ArrayList<>();
+        }
+
+        logger.info("Capturando 1 frame de cada cámara (optimizado)...");
+
+        List<BufferedImage> frames = new ArrayList<>();
+
+        for (Map.Entry<Integer, CameraCapture> entry : cameras.entrySet()) {
+            int cameraIndex = entry.getKey();
+            CameraCapture capture = entry.getValue();
+
+            try {
+                if (capture.isInitialized()) {
+                    BufferedImage frame = capture.captureSingleFrame();
+
+                    if (frame != null) {
+                        frames.add(frame);
+                        logger.info(String.format("Frame capturado de cámara %d", cameraIndex));
+                    } else {
+                        logger.warning(String.format("Frame nulo de cámara %d", cameraIndex));
+                    }
+                } else {
+                    logger.warning(String.format("Cámara %d no está inicializada", cameraIndex));
+                }
+            } catch (Exception e) {
+                logger.warning(String.format("Error capturando de cámara %d: %s",
+                        cameraIndex, e.getMessage()));
+            }
+        }
+
+        logger.info(String.format("Captura completa: %d frame(s) de %d cámara(s)",
+                frames.size(), cameras.size()));
+
+        return frames;
+    }
+
     public void printServiceInfo() {
         System.out.println(getServiceInfo());
     }

@@ -7,6 +7,7 @@ import org.iclassq.accessibility.proximity.ProximityDetectionService;
 import org.iclassq.accessibility.proximity.ProximityDetector;
 import org.iclassq.view.components.Message;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
@@ -14,13 +15,40 @@ public class ProximityDetectionAdapter {
     private static final Logger logger = Logger.getLogger(ProximityDetectionAdapter.class.getName());
 
     private Consumer<Boolean> onDetectionCompleted;
+    private final AtomicBoolean detectionExecuted = new AtomicBoolean(false);
+    private ProximityDetectionService detectionService;
 
     public ProximityDetectionAdapter() {
-        executeDetection();
+        logger.info("ProximityDetectionAdapter creado (modo espera)");
     }
 
     public void onDetectionCompleted(Consumer<Boolean> callback) {
         this.onDetectionCompleted = callback;
+    }
+
+    public void start() {
+        if (detectionExecuted.get()) {
+            logger.warning("Deteccion ya fue ejecutada, ignorando llamada a start");
+            logger.warning("Usa reset() si necesitas reiniciar la deteccion");
+            return;
+        }
+
+        logger.info("Iniciando deteccion de proximidad");
+        executeDetection();
+    }
+
+    public void stop() {
+        logger.info("Deteniendo deteccion de proximidad");
+        detectionExecuted.set(true);
+    }
+
+    public void reset() {
+        logger.info("Reseteando detector de proximidad");
+        detectionExecuted.set(false);
+    }
+
+    public boolean isDetectionExecuted() {
+        return detectionExecuted.get();
     }
 
     private void executeDetection() {
@@ -33,15 +61,15 @@ public class ProximityDetectionAdapter {
             return;
         }
 
-        ProximityDetectionService detectionService = detector.getDetectionService();
+        detectionService = detector.getDetectionService();
 
         detectionService.onReady(ready -> {
-            logger.info("📡 Sistema de proximidad listo, esperando presencia...");
-            executeDetectionAsync(detectionService);
+            logger.info("Sistema de proximidad listo, esperando presencia...");
+            executeDetectionAsync();
         });
     }
 
-    private void executeDetectionAsync(ProximityDetectionService detectionService) {
+    private void executeDetectionAsync() {
         detectionService.detectAndActivateAsync()
                 .thenAccept(this::handleDetectionSuccess)
                 .exceptionally(error -> {
@@ -51,7 +79,15 @@ public class ProximityDetectionAdapter {
     }
 
     private void handleDetectionSuccess(boolean hasPresence) {
+        if (!detectionExecuted.compareAndSet(false, true)) {
+            logger.info("Señal COMPLETE ignorada - detección ya procesada anteriormente");
+            logger.fine("   detectionExecuted = true, ignorando llamada subsecuente");
+            return;
+        }
+
         Platform.runLater(() -> {
+            logger.info("PRIMERA señal de proximidad recibida - procesando...");
+
             if (hasPresence) {
                 handlePresenceDetected();
             } else {
@@ -65,23 +101,23 @@ public class ProximityDetectionAdapter {
     }
 
     private void handlePresenceDetected() {
-        logger.info("Presencia detectada (5 segundos)");
-
-        AccessibilityManager.getInstance().enableAccessibility();
-
-        logger.info("Sistema de accesibilidad activado");
+        logger.info("Presencia detectada (usuario cerca del sensor)");
+        logger.info("   Notificando a IdentificationController para iniciar cámara");
     }
 
     private void handleNoPresenceDetected() {
         logger.info("No se detectó presencia continua");
+        logger.info("   Usuario se acercó pero se retiró antes de 5 segundos");
 
         AccessibilityManager.getInstance().disableAccessibility();
-
-        logger.info("Modo visual normal activado");
     }
 
     private void handleDetectionUnavailable() {
-        logger.warning("Sistema de proximidad no disponible - continuando en modo visual");
+        logger.warning("Sistema de proximidad no disponible");
+        logger.warning("   Arduino no está conectado o no responde");
+        logger.warning("   Continuando en modo visual normal");
+
+        detectionExecuted.set(true);
 
         Platform.runLater(() -> {
             AccessibilityManager.getInstance().disableAccessibility();
@@ -94,6 +130,9 @@ public class ProximityDetectionAdapter {
 
     private void handleDetectionError(Throwable error) {
         logger.severe("Error en detección de proximidad: " + error.getMessage());
+        error.printStackTrace();
+
+        detectionExecuted.set(true);
 
         Platform.runLater(() -> {
             Message.showError(
