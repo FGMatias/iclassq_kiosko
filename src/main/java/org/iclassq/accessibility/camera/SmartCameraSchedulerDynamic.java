@@ -43,7 +43,7 @@ public class SmartCameraSchedulerDynamic {
 
         schedulerRunning = true;
 
-        loadHorariosFromBD();
+        loadHorarios();
 
         logger.info(String.format("  Horario actual: %02d:00 - %02d:00",
                 activeStartHour, activeEndHour));
@@ -54,7 +54,6 @@ public class SmartCameraSchedulerDynamic {
 
         checkAndAdjustCameraState();
 
-        // 3. Verificar cámara cada hora
         scheduler.scheduleAtFixedRate(
                 this::checkAndAdjustCameraState,
                 1,
@@ -63,14 +62,14 @@ public class SmartCameraSchedulerDynamic {
         );
 
         scheduler.scheduleAtFixedRate(
-                this::loadHorariosFromBD,
+                this::loadHorarios,
                 6,
                 6,
                 TimeUnit.HOURS
         );
     }
 
-    private void loadHorariosFromBD() {
+    private void loadHorarios() {
         try {
             logger.info("Cargando horarios desde base de datos...");
 
@@ -78,14 +77,14 @@ public class SmartCameraSchedulerDynamic {
             Integer idRol = session.getRolEquipoId();
 
             if (idRol == null) {
-                logger.warning("No hay idRol en sesión, usando horarios por defecto");
+                logger.warning("No hay idRol en sesión, usando horarios actuales");
                 return;
             }
 
             HorarioDTO horarios = horarioService.getHorarios(idRol);
 
             if (horarios == null) {
-                logger.warning("⚠️ No se obtuvieron horarios, usando valores por defecto");
+                logger.warning("No se obtuvieron horarios, usando valores actuales");
                 return;
             }
 
@@ -208,7 +207,7 @@ public class SmartCameraSchedulerDynamic {
 
     public void reloadHorarios() {
         logger.info("Recarga manual de horarios solicitada");
-        loadHorariosFromBD();
+        loadHorarios();
     }
 
     public String getHorariosActuales() {
@@ -226,7 +225,7 @@ public class SmartCameraSchedulerDynamic {
         logger.info(String.format("  Horario desde BD: %02d:00 - %02d:00",
                 activeStartHour, activeEndHour));
         logger.info(String.format("  Estado actual: %s",
-                cameraActive ? "ACTIVA 💡" : "INACTIVA 🔴"));
+                cameraActive ? "ACTIVA" : "INACTIVA"));
         logger.info(String.format("  Debe estar activa: %s",
                 isActiveHours(now.getHour(), now.getDayOfWeek()) ? "SÍ" : "NO"));
         logger.info(String.format("  Scheduler corriendo: %s",

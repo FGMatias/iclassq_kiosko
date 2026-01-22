@@ -40,27 +40,28 @@ public class IdentificationController {
         view.setOnDelete(this::handleDelete);
         view.setOnDeleteAll(this::handleDeleteAll);
 
-//        AccessibilityManager.getInstance().enableAccessibility();
-//        this.detectionAdapter = new DisabilityDetectionAdapter();
+        AccessibilityManager.getInstance().enableAccessibility();
+        this.detectionAdapter = new DisabilityDetectionAdapter();
         this.voiceAdapter = new IdentificationVoiceAdapter();
-        this.proximityAdapter = new ProximityDetectionAdapter();
-        this.proximityAdapter.onDetectionCompleted(proximityDetected -> {
-            if (proximityDetected) {
-                logger.info("Arduino detectó presencia - iniciando detección por cámara");
-
-                this.detectionAdapter = new DisabilityDetectionAdapter();
-
-            } else {
-                logger.info("Arduino no detectó presencia continua");
-                logger.info("   Usuario se retiró antes de completar 5 segundos");
-                logger.info("   Continuando en modo visual normal (sin accesibilidad)");
-
-                AccessibilityManager.getInstance().disableAccessibility();
-            }
-        });
+        this.proximityAdapter = null;
+//        this.proximityAdapter = new ProximityDetectionAdapter();
+//        this.proximityAdapter.onDetectionCompleted(proximityDetected -> {
+//            if (proximityDetected) {
+//                logger.info("Arduino detectó presencia - iniciando detección por cámara");
+//
+//                this.detectionAdapter = new DisabilityDetectionAdapter();
+//
+//            } else {
+//                logger.info("Arduino no detectó presencia continua");
+//                logger.info("   Usuario se retiró antes de completar 5 segundos");
+//                logger.info("   Continuando en modo visual normal (sin accesibilidad)");
+//
+//                AccessibilityManager.getInstance().disableAccessibility();
+//            }
+//        });
 
         loadDocumentTypes();
-        initializeProximityDetection();
+//        initializeProximityDetection();
     }
 
     private void initializeProximityDetection() {

@@ -2,6 +2,7 @@ package org.iclassq.controller;
 
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
+import org.iclassq.accessibility.AccessibilityInitializer;
 import org.iclassq.config.ServiceFactory;
 import org.iclassq.model.dto.request.LoginRequestDTO;
 import org.iclassq.model.dto.response.LoginResponseDTO;
@@ -44,6 +45,7 @@ public class LoginController {
 
                     if (response.isSuccess()) {
                         OnScreenKeyboard.hide();
+                        AccessibilityInitializer.initializer();
                         Navigator.navigateToIdentification();
                     } else {
                         showError(response.getMessage());
