@@ -132,6 +132,11 @@ public class ProximityDetectionServiceImpl implements ProximityDetectionService 
     @Override
     public void onReady(Consumer<Boolean> callback) {
         this.readyCallback = callback;
+
+        if (ready) {
+            logger.info("Servicio ya listo, ejecutando callback inmediatamente");
+            Platform.runLater(() -> callback.accept(true));
+        }
     }
 
     @Override

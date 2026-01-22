@@ -15,6 +15,7 @@ public class ServiceFactory {
     private static SubGrupoService subGrupoService;
     private static TipoDocumentoService tipoDocumentoService;
     private static TicketService ticketService;
+    private static HorarioService horarioService;
     private static CookieJar cookieJar;
 
     public static void init(String backendUrl) {
@@ -37,6 +38,7 @@ public class ServiceFactory {
         subGrupoService = new SubGrupoServiceImpl(backendUrl, cookieJar);
         tipoDocumentoService = new TipoDocumentoServiceImpl(backendUrl, cookieJar);
         ticketService = new TicketServiceImpl(backendUrl, cookieJar);
+        horarioService = new HorarioServiceImpl(backendUrl, cookieJar);
     }
 
     public static AuthService getAuthService() {
@@ -62,6 +64,11 @@ public class ServiceFactory {
     public static TicketService getTicketService() {
         checkInitialization();
         return ticketService;
+    }
+
+    public static HorarioService getHorarioService() {
+        checkInitialization();
+        return horarioService;
     }
 
     private static void checkInitialization() {

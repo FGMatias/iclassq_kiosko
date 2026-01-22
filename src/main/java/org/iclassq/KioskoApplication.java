@@ -5,6 +5,7 @@ import javafx.application.Application;
 import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 import org.iclassq.accessibility.DisabilityDetector;
+import org.iclassq.accessibility.camera.SmartCameraSchedulerDynamic;
 import org.iclassq.accessibility.proximity.ProximityDetector;
 import org.iclassq.accessibility.voice.VoiceManager;
 import org.iclassq.config.AppConfig;
@@ -19,6 +20,7 @@ public class KioskoApplication extends Application {
     private static final Logger logger = Logger.getLogger(KioskoApplication.class.getName());
     private static DisabilityDetector disabilityDetector;
     private static ProximityDetector proximityDetector;
+    private static SmartCameraSchedulerDynamic cameraScheduler;
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -28,7 +30,8 @@ public class KioskoApplication extends Application {
         ServiceFactory.init(AppConfig.getBackendUrl());
 
         initializeProximityDetector(null);
-        initializeDisabilityDetector();
+//        initializeDisabilityDetector();
+        initializeSmartCameraScheduler();
         initializeVoiceServices();
 
         Navigator.init(stage);
@@ -89,6 +92,24 @@ public class KioskoApplication extends Application {
         }, "DisabilityDetector-Init").start();
     }
 
+    private void initializeSmartCameraScheduler() {
+        try {
+            logger.info("Inicializando Smart Camera Scheduler (dinámico)...");
+
+            cameraScheduler = new SmartCameraSchedulerDynamic();
+            cameraScheduler.start();
+
+            logger.info("Smart Camera Scheduler inicializado correctamente");
+
+        } catch (Exception e) {
+            logger.severe("Error al inicializar Smart Camera Scheduler: " + e.getMessage());
+            e.printStackTrace();
+
+            logger.warning("Usando inicialización tradicional como fallback...");
+            initializeDisabilityDetector();
+        }
+    }
+
     public static boolean initializeProximityDetector(String portName) {
         try {
             logger.info("Inicializando detector de proximidad...");
@@ -120,6 +141,14 @@ public class KioskoApplication extends Application {
         return disabilityDetector != null && disabilityDetector.isInitialized();
     }
 
+    public static SmartCameraSchedulerDynamic getCameraScheduler() {
+        return cameraScheduler;
+    }
+
+    public static void setDisabilityDetector(DisabilityDetector detector) {
+        disabilityDetector = detector;
+    }
+
     public static ProximityDetector getProximityDetector() {
         return proximityDetector;
     }
@@ -135,6 +164,16 @@ public class KioskoApplication extends Application {
         } catch (Exception e) {
             logger.warning("Error al deshabilitar servicios de voz: " + e.getMessage());
         }
+
+        try {
+            if (cameraScheduler != null) {
+                cameraScheduler.shutdown();
+                logger.info("Smart Camera Scheduler detenido");
+            }
+        } catch (Exception e) {
+            logger.warning("Error al detener Smart Camera Scheduler: " + e.getMessage());
+        }
+
 
         try {
             if (disabilityDetector != null) {
