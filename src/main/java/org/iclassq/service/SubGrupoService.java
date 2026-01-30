@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface SubGrupoService {
     List<SubGrupoDTO> getByGrupo(Integer sucursalId, Integer grupoId) throws IOException;
+    SubGrupoDTO getPreferencial(Integer sucursalId, Integer grupoId) throws IOException;
 }

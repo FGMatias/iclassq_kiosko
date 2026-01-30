@@ -1,5 +1,6 @@
 package org.iclassq.accessibility;
 
+import org.iclassq.accessibility.braille.BrailleService;
 import org.iclassq.accessibility.voice.VoiceManager;
 import org.iclassq.util.voice.VoiceAssistant;
 
@@ -13,6 +14,7 @@ public class AccessibilityManager {
     private boolean accessibilityEnabled = false;
 
     private VoiceAssistant voiceAssistant = null;
+    private BrailleService brailleService = null;
 
     private AccessibilityManager() {
         logger.info("AccessibilityManager inicializado");
@@ -37,21 +39,29 @@ public class AccessibilityManager {
             voiceAssistant = new VoiceAssistant();
         }
 
+        if (brailleService == null) {
+            brailleService = new BrailleService();
+        }
+
         if (voiceAssistant.isReady()) {
             boolean activated = voiceAssistant.activate();
 
             if (activated) {
+                brailleService.enable();
                 accessibilityEnabled = true;
                 logger.info("Servicios de accesibilidad HABILITADOS");
                 logger.info("   VoiceAssistant compartido ACTIVO");
             } else {
                 logger.warning("No se pudo activar VoiceAssistant");
                 voiceAssistant = null;
+                brailleService.disable();
+                brailleService = null;
                 accessibilityEnabled = false;
             }
         } else {
             logger.warning("VoiceAssistant no está ready");
             voiceAssistant = null;
+            brailleService = null;
             accessibilityEnabled = false;
         }
     }
@@ -66,6 +76,10 @@ public class AccessibilityManager {
 
         if (voiceAssistant != null && voiceAssistant.isActive()) {
             voiceAssistant.deactivate();
+        }
+
+        if (brailleService != null && brailleService.isEnabled()) {
+            brailleService.disable();
         }
 
         accessibilityEnabled = false;
@@ -85,12 +99,25 @@ public class AccessibilityManager {
         return voiceAssistant != null && voiceAssistant.isActive();
     }
 
+    public BrailleService getBrailleService() {
+        return brailleService;
+    }
+
+    public boolean isBrailleActive() {
+        return brailleService != null && brailleService.isEnabled();
+    }
+
     public void reset() {
         if (voiceAssistant != null && voiceAssistant.isActive()) {
             voiceAssistant.deactivate();
         }
 
+        if (brailleService != null && brailleService.isEnabled()) {
+            brailleService.disable();
+        }
+
         voiceAssistant = null;
+        brailleService = null;
         accessibilityEnabled = false;
 
         logger.info("AccessibilityManager reseteado");
@@ -107,6 +134,10 @@ public class AccessibilityManager {
                 voiceAssistant != null ? "DISPONIBLE" : "NULL"));
         sb.append(String.format("Voz Activa: %s\n",
                 isVoiceActive() ? "SÍ" : "NO"));
+        sb.append(String.format("BrailleService: %s\n",
+                brailleService != null ? "DISPONIBLE" : "NULL"));
+        sb.append(String.format("Braille Activo: %s\n",
+                isBrailleActive() ? "SÍ" : "NO"));
         sb.append("═══════════════════════════════════════\n");
         return sb.toString();
     }

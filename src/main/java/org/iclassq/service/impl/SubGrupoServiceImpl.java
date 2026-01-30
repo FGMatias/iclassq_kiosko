@@ -32,4 +32,29 @@ public class SubGrupoServiceImpl extends BaseService implements SubGrupoService 
             return parseDataList(response, SubGrupoDTO.class);
         }
     }
+
+    @Override
+    public SubGrupoDTO getPreferencial(Integer sucursalId, Integer grupoId) throws IOException {
+        logger.info("Obteniendo subgrupo preferencial - grupo: " + grupoId);
+
+        String url = baseUrl + "/getsubgrupopreferencial.app?idGrupo=" + grupoId + "&idSucursal=" + sucursalId;
+
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            SubGrupoDTO subgrupo = parseData(response, SubGrupoDTO.class);
+
+            if (subgrupo != null) {
+                logger.info(String.format("Subgrupo preferencial encontrado: %s (ID: %d)",
+                        subgrupo.getVNombreSubGrupo(), subgrupo.getISubGrupo()));
+            } else {
+                logger.warning("No se encontró subgrupo preferencial");
+            }
+
+            return subgrupo;
+        }
+    }
 }

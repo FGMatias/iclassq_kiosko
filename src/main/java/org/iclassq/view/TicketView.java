@@ -180,4 +180,8 @@ public class TicketView {
     public String getTicketCode() {
         return ticket != null ? ticket.getCodigo() : "";
     }
+
+    public TicketResponseDTO getTicket() {
+        return ticket;
+    }
 }
