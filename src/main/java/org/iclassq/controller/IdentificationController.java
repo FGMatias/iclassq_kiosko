@@ -40,7 +40,7 @@ public class IdentificationController {
         view.setOnDelete(this::handleDelete);
         view.setOnDeleteAll(this::handleDeleteAll);
 
-        AccessibilityManager.getInstance().enableAccessibility();
+//        AccessibilityManager.getInstance().enableAccessibility();
         this.detectionAdapter = new DisabilityDetectionAdapter();
         this.voiceAdapter = new IdentificationVoiceAdapter();
         this.proximityAdapter = null;

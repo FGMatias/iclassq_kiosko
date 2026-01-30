@@ -20,6 +20,7 @@ public class KioskoApplication extends Application {
     private static final Logger logger = Logger.getLogger(KioskoApplication.class.getName());
     private static DisabilityDetector disabilityDetector;
     private static ProximityDetector proximityDetector;
+    private static SmartCameraSchedulerDynamic cameraScheduler;
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -79,6 +80,14 @@ public class KioskoApplication extends Application {
         proximityDetector = detector;
     }
 
+    public static SmartCameraSchedulerDynamic getCameraScheduler() {
+        return cameraScheduler;
+    }
+
+    public static void setCameraScheduler(SmartCameraSchedulerDynamic scheduler) {
+        cameraScheduler = scheduler;
+    }
+
     @Override
     public void stop() throws Exception {
         try {
@@ -89,6 +98,15 @@ public class KioskoApplication extends Application {
             }
         } catch (Exception e) {
             logger.warning("Error al deshabilitar servicios de voz: " + e.getMessage());
+        }
+
+        try {
+            if (cameraScheduler != null) {
+                cameraScheduler.shutdown();
+                logger.info("Smart Camera Scheduler detenido");
+            }
+        } catch (Exception e) {
+            logger.warning("Error al detener scheduler: " + e.getMessage());
         }
 
         try {

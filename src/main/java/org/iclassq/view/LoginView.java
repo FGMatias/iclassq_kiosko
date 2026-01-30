@@ -11,6 +11,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import org.iclassq.util.Fonts;
+import org.iclassq.view.components.Loading;
 
 public class LoginView extends StackPane {
     private TextField username;
@@ -19,9 +20,12 @@ public class LoginView extends StackPane {
 
     private Runnable onLogin;
 
+    private Loading loading;
+
     public LoginView() {
         init();
         setupEventHandler();
+        createLoading();
     }
 
     private void setupEventHandler() {
@@ -147,6 +151,45 @@ public class LoginView extends StackPane {
                 btnLogin
         );
         return container;
+    }
+
+    private void createLoading() {
+        loading = new Loading(
+                "Preparando sistema",
+                "Esto tomará solo unos segundos..."
+        );
+        loading.setSpinnerSize(60);
+        loading.hide();
+        getChildren().add(loading);
+    }
+
+    public void showLoading() {
+        loading.setMessages(
+                "Preparando sistema",
+                "Esto tomará solo unos segundos..."
+        );
+        loading.show();
+        loading.toFront();
+
+        btnLogin.setDisable(true);
+        username.setDisable(true);
+        password.setDisable(true);
+    }
+
+    public void showLoading(String message, String subMessage) {
+        loading.setMessages(message, subMessage);
+        loading.show();
+        loading.toFront();
+        btnLogin.setDisable(true);
+        username.setDisable(true);
+        password.setDisable(true);
+    }
+
+    public void hideLoading() {
+        loading.hide();
+        btnLogin.setDisable(false);
+        username.setDisable(false);
+        password.setDisable(false);
     }
 
     public TextField getUsername() {

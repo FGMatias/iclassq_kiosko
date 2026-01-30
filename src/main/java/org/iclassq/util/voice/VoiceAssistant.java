@@ -64,7 +64,7 @@ public class VoiceAssistant {
         }
 
         try {
-            logger.info("🔇 Desactivando VoiceAssistant...");
+            logger.info("Desactivando VoiceAssistant...");
 
             disableGrammar();
             voiceManager.stopListening();

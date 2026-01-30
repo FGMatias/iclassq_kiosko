@@ -138,9 +138,9 @@ public class AccessibilityDetectionService {
         return detectAsync()
                 .thenApply(response -> {
                     if (response.isDisabilityDetected()) {
-                        logger.info("♿ Persona con discapacidad detectada");
+                        logger.info("Persona con discapacidad detectada");
                         logger.info("   Tipo: " + response.getDisabilityType());
-                        logger.info("🔊 Activando servicios de accesibilidad...");
+                        logger.info("Activando servicios de accesibilidad...");
 
                         accessibilityManager.enableAccessibility();
 

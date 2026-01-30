@@ -22,7 +22,6 @@ public class SessionData {
     private String numeroDocumento;
     private GrupoDTO grupo;
     private SubGrupoDTO subgrupo;
-    private MLDetectionResult mlResult;
     private boolean esPreferencial;
     private LocalDateTime inicioSesion;
 
@@ -72,7 +71,6 @@ public class SessionData {
         this.numeroDocumento = null;
         this.grupo = null;
         this.subgrupo = null;
-        this.mlResult = null;
         this.esPreferencial = false;
         this.inicioSesion = LocalDateTime.now();
     }

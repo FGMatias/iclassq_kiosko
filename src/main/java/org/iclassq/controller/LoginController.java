@@ -12,7 +12,10 @@ import org.iclassq.util.Constants;
 import org.iclassq.util.OnScreenKeyboard;
 import org.iclassq.view.LoginView;
 
+import java.util.logging.Logger;
+
 public class LoginController {
+    private final Logger logger = Logger.getLogger(LoginController.class.getName());
     private final LoginView view;
     private final AuthService authService;
 
@@ -41,13 +44,38 @@ public class LoginController {
                 LoginResponseDTO response = authService.login(request);
 
                 Platform.runLater(() -> {
-                    view.getBtnLogin().setDisable(false);
-
                     if (response.isSuccess()) {
+                        logger.info("Autenticación exitosa");
+                        view.showLoading(
+                                "Preparando sistema",
+                                "Esto tomará solo unos segundos..."
+                        );
                         OnScreenKeyboard.hide();
-                        AccessibilityInitializer.initializer();
-                        Navigator.navigateToIdentification();
+
+                        new Thread(() -> {
+                            try {
+                                logger.info("Iniciando inicialización de sistemas de accesibilidad...");
+                                AccessibilityInitializer.initializer();
+
+                                logger.info("Inicialización completada exitosamente");
+                                Platform.runLater(() -> {
+                                    view.hideLoading();
+                                    Navigator.navigateToIdentification();
+                                });
+                            } catch (Exception e) {
+                                logger.severe("Error en inicialización: " + e.getMessage());
+                                e.printStackTrace();
+
+                                Platform.runLater(() -> {
+                                    view.hideLoading();
+                                    showError("Error al iniciar el sistema: " + e.getMessage());
+                                    view.getBtnLogin().setDisable(false);
+                                });
+                            }
+                        }, "AccessibilityInitThread").start();
                     } else {
+                        logger.warning("Autenticación fallida: " + response.getMessage());
+                        view.getBtnLogin().setDisable(false);
                         showError(response.getMessage());
                     }
                 });
@@ -58,7 +86,7 @@ public class LoginController {
                     showError("Error de conexión: " + e.getMessage());
                 });
             }
-        }).start();
+        }, "AuthenticationThread").start();
     }
 
     private void showError(String message) {

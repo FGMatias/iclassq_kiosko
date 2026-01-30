@@ -9,17 +9,17 @@ import org.iclassq.service.HorarioService;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class SmartCameraSchedulerDynamic {
-
     private static final Logger logger = Logger.getLogger(SmartCameraSchedulerDynamic.class.getName());
 
-    private int activeStartHour = 6;
-    private int activeEndHour = 22;
+    private LocalTime activeStartTime = LocalTime.of(6, 0);
+    private LocalTime activeEndTime = LocalTime.of(22, 0);
 
     private final ScheduledExecutorService scheduler;
     private final HorarioService horarioService;
@@ -45,8 +45,8 @@ public class SmartCameraSchedulerDynamic {
 
         loadHorarios();
 
-        logger.info(String.format("  Horario actual: %02d:00 - %02d:00",
-                activeStartHour, activeEndHour));
+        logger.info(String.format("  Horario actual: %s - %s",
+                activeStartTime, activeEndTime));
         logger.info("  Fuente: Base de datos (tbl_grupo)");
         logger.info("  Verificación estado: Cada hora");
         logger.info("  Actualización horarios: Cada 6 horas");
@@ -88,31 +88,31 @@ public class SmartCameraSchedulerDynamic {
                 return;
             }
 
-            int newStartHour = horarios.getHoraInicioAsInt();
-            int newEndHour = horarios.getHoraFinAsInt();
+            LocalTime newStartTime = horarios.getHoraInicioAsLocalTime();
+            LocalTime newEndTime = horarios.getHoraFinAsLocalTime();
 
-            if (newStartHour != activeStartHour || newEndHour != activeEndHour) {
+            if (!newStartTime.equals(activeStartTime) || !newEndTime.equals(activeEndTime)) {
                 logger.info("═══════════════════════════════════════════");
                 logger.info("HORARIOS ACTUALIZADOS DESDE BD");
-                logger.info(String.format("   Anterior: %02d:00 - %02d:00",
-                        activeStartHour, activeEndHour));
-                logger.info(String.format("   Nuevo:    %02d:00 - %02d:00",
-                        newStartHour, newEndHour));
+                logger.info(String.format("   Anterior: %s - %s",
+                        activeStartTime, activeEndTime));
+                logger.info(String.format("   Nuevo:    %s - %s",
+                        newStartTime, newEndTime));
                 logger.info("═══════════════════════════════════════════");
 
-                activeStartHour = newStartHour;
-                activeEndHour = newEndHour;
+                activeStartTime = newStartTime;
+                activeEndTime = newEndTime;
 
                 checkAndAdjustCameraState();
             } else {
-                logger.info(String.format("Horarios confirmados: %02d:00 - %02d:00 (sin cambios)",
-                        activeStartHour, activeEndHour));
+                logger.info(String.format("Horarios confirmados: %s - %s (sin cambios)",
+                        activeStartTime, activeEndTime));
             }
 
         } catch (Exception e) {
             logger.severe("Error al cargar horarios desde BD: " + e.getMessage());
-            logger.warning(String.format("   Usando horarios actuales: %02d:00 - %02d:00",
-                    activeStartHour, activeEndHour));
+            logger.warning(String.format("   Usando horarios actuales: %s - %s",
+                    activeStartTime, activeEndTime));
             e.printStackTrace();
         }
     }
@@ -120,18 +120,18 @@ public class SmartCameraSchedulerDynamic {
     private void checkAndAdjustCameraState() {
         try {
             LocalDateTime now = LocalDateTime.now();
-            int currentHour = now.getHour();
+            LocalTime currentTime = now.toLocalTime();
             DayOfWeek currentDay = now.getDayOfWeek();
 
-            boolean shouldBeActive = isActiveHours(currentHour, currentDay);
+            boolean shouldBeActive = isActiveTime(currentTime, currentDay);
 
-            logger.fine(String.format("Verificación horario: %s %02d:00 - Estado deseado: %s",
-                    currentDay, currentHour, shouldBeActive ? "ACTIVA" : "INACTIVA"));
+            logger.fine(String.format("Verificación horario: %s %s - Estado deseado: %s",
+                    currentDay, currentTime, shouldBeActive ? "ACTIVA" : "INACTIVA"));
 
             if (shouldBeActive && !cameraActive) {
-                activateCamera(currentHour);
+                activateCamera(currentTime);
             } else if (!shouldBeActive && cameraActive) {
-                deactivateCamera(currentHour);
+                deactivateCamera(currentTime);
             } else {
                 logger.fine(String.format("Cámara ya está en estado correcto: %s",
                         cameraActive ? "ACTIVA" : "INACTIVA"));
@@ -143,16 +143,16 @@ public class SmartCameraSchedulerDynamic {
         }
     }
 
-    private boolean isActiveHours(int hour, DayOfWeek day) {
-        return hour >= activeStartHour && hour < activeEndHour;
+    private boolean isActiveTime(LocalTime currentTime, DayOfWeek day) {
+        return !currentTime.isBefore(activeStartTime) && currentTime.isBefore(activeEndTime);
     }
 
-    private void activateCamera(int currentHour) {
+    private void activateCamera(LocalTime currentTime) {
         logger.info("═══════════════════════════════════════════");
         logger.info("ACTIVANDO CÁMARA - Horario Activo");
-        logger.info(String.format("   Hora actual: %02d:00", currentHour));
-        logger.info(String.format("   Horario desde BD: %02d:00 - %02d:00",
-                activeStartHour, activeEndHour));
+        logger.info(String.format("   Hora actual: %s", currentTime));
+        logger.info(String.format("   Horario desde BD: %s - %s",
+                activeStartTime, activeEndTime));
         logger.info("═══════════════════════════════════════════");
 
         try {
@@ -177,10 +177,10 @@ public class SmartCameraSchedulerDynamic {
         }
     }
 
-    private void deactivateCamera(int currentHour) {
+    private void deactivateCamera(LocalTime currentTime) {
         logger.info("═══════════════════════════════════════════");
         logger.info("DESACTIVANDO CÁMARA - Horario Inactivo");
-        logger.info(String.format("   Hora actual: %02d:00", currentHour));
+        logger.info(String.format("   Hora actual: %s", currentTime));
         logger.info("   Razón: Fuera del horario de atención");
         logger.info("═══════════════════════════════════════════");
 
@@ -211,23 +211,24 @@ public class SmartCameraSchedulerDynamic {
     }
 
     public String getHorariosActuales() {
-        return String.format("%02d:00 - %02d:00", activeStartHour, activeEndHour);
+        return String.format("%s - %s", activeStartTime, activeEndTime);
     }
 
     public void printStatus() {
         LocalDateTime now = LocalDateTime.now();
+        LocalTime currentTime = now.toLocalTime();
 
         logger.info("═══════════════════════════════════════════");
         logger.info("  SMART CAMERA SCHEDULER - STATUS");
         logger.info("═══════════════════════════════════════════");
-        logger.info(String.format("  Fecha/Hora: %s %02d:%02d",
-                now.getDayOfWeek(), now.getHour(), now.getMinute()));
-        logger.info(String.format("  Horario desde BD: %02d:00 - %02d:00",
-                activeStartHour, activeEndHour));
+        logger.info(String.format("  Fecha/Hora: %s %s",
+                now.getDayOfWeek(), currentTime));
+        logger.info(String.format("  Horario desde BD: %s - %s",
+                activeStartTime, activeEndTime));
         logger.info(String.format("  Estado actual: %s",
                 cameraActive ? "ACTIVA" : "INACTIVA"));
         logger.info(String.format("  Debe estar activa: %s",
-                isActiveHours(now.getHour(), now.getDayOfWeek()) ? "SÍ" : "NO"));
+                isActiveTime(currentTime, now.getDayOfWeek()) ? "SÍ" : "NO"));
         logger.info(String.format("  Scheduler corriendo: %s",
                 schedulerRunning ? "SÍ" : "NO"));
         logger.info("  Fuente horarios: Base de datos (tbl_grupo)");
@@ -253,7 +254,7 @@ public class SmartCameraSchedulerDynamic {
         }
 
         if (cameraActive) {
-            deactivateCamera(LocalDateTime.now().getHour());
+            deactivateCamera(LocalTime.now());
         }
 
         logger.info("Smart Camera Scheduler detenido");
