@@ -255,7 +255,7 @@ public class IdentificationView extends StackPane {
         }
     }
 
-    private void updateLengthIndicator() {
+    public void updateLengthIndicator() {
         if (currentConfig != null) {
             int current = documentNumber.getText().length();
             int max = currentConfig.getMaxLength();

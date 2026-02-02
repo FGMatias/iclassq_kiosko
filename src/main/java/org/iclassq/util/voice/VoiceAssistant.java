@@ -15,6 +15,8 @@ public class VoiceAssistant {
     private Consumer<String> numberHandler = null;
     private boolean ready = false;
     private boolean active = false;
+    private long lastStopTimestamp = 0;
+    private static final long RECENT_STOP_THRESHOLD_MS = 500;
 
     public VoiceAssistant() {
         this.voiceManager = VoiceManager.getInstance();
@@ -89,6 +91,8 @@ public class VoiceAssistant {
 
         try {
             voiceManager.speak(message);
+            lastStopTimestamp = System.currentTimeMillis();
+            logger.info("TTS detenido");
         } catch (Exception e) {
             logger.warning("Error al hablar: " + e.getMessage());
         }
@@ -103,6 +107,15 @@ public class VoiceAssistant {
         } catch (Exception e) {
             logger.warning("Error al detener TTS: " + e.getMessage());
         }
+    }
+
+    public boolean wasRecentlyStopped() {
+        if (lastStopTimestamp == 0) {
+            return false;
+        }
+
+        long timeSinceStop = System.currentTimeMillis() - lastStopTimestamp;
+        return timeSinceStop < RECENT_STOP_THRESHOLD_MS;
     }
 
     public void registerCommand(String keywords, Runnable action) {

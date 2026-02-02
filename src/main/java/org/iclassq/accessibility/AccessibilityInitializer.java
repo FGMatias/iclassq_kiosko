@@ -2,6 +2,7 @@ package org.iclassq.accessibility;
 
 import org.iclassq.KioskoApplication;
 import org.iclassq.accessibility.camera.SmartCameraSchedulerDynamic;
+import org.iclassq.accessibility.proximity.ProximityDetector;
 import org.iclassq.config.ServiceFactory;
 import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.response.HorarioDTO;
@@ -9,18 +10,6 @@ import org.iclassq.service.HorarioService;
 
 import java.util.logging.Logger;
 
-/**
- * Inicializador de Sistemas de Accesibilidad
- *
- * Responsabilidad:
- * - Obtener horarios de atención desde la BD
- * - Inicializar el SmartCameraScheduler con esos horarios
- * - El scheduler se encargará de activar/desactivar la cámara periódicamente
- *
- * Se ejecuta UNA VEZ después del login exitoso.
- *
- * @author ICLASSQ Team
- */
 public class AccessibilityInitializer {
 
     private static final Logger logger = Logger.getLogger(AccessibilityInitializer.class.getName());
@@ -40,6 +29,8 @@ public class AccessibilityInitializer {
             }
 
             logger.info(String.format("  RolEquipoId obtenido: %d", rolEquipoId));
+
+            initializeProximityDetector();
 
             HorarioDTO horarios = obtenerHorarios(rolEquipoId);
 
@@ -65,6 +56,48 @@ public class AccessibilityInitializer {
         }
     }
 
+    private static void initializeProximityDetector() {
+        try {
+            logger.info("  Inicializando Proximity Detector...");
+
+            String[] availablePorts = ProximityDetector.getAvailablePorts();
+
+            if (availablePorts.length == 0) {
+                logger.warning("  No se encontraron puertos COM");
+                logger.warning("  Verifique que el Arduino esté conectado");
+                logger.warning("  Sistema continuará sin detección de proximidad");
+                return;
+            }
+
+            logger.info("     Puertos COM disponibles:");
+            for (String port : availablePorts) {
+                logger.info("       - " + port);
+            }
+
+            ProximityDetector detector = new ProximityDetector();
+            boolean initialized = detector.initialize();
+
+            if (initialized) {
+                KioskoApplication.setProximityDetector(detector);
+                logger.info(" Proximity Detector inicializado correctamente");
+                logger.info("     - Arduino conectado y listo");
+                logger.info("     - Sistema esperando señales de proximidad");
+            } else {
+                logger.warning("      ProximityDetector no se pudo inicializar");
+                logger.warning("      Verifique:");
+                logger.warning("        1. Arduino conectado al USB");
+                logger.warning("        2. Drivers CH340 instalados");
+                logger.warning("        3. Puerto COM no usado por otra app");
+                logger.warning("     Sistema continuará sin detección de proximidad");
+            }
+
+        } catch (Exception e) {
+            logger.severe("Error al inicializar Proximity Detector: " + e.getMessage());
+            logger.severe("   Sistema continuará sin detección de proximidad");
+            e.printStackTrace();
+        }
+    }
+
     private static HorarioDTO obtenerHorarios(Integer rolEquipoId) {
         try {
             logger.info("  Obteniendo horarios desde base de datos...");
@@ -73,7 +106,7 @@ public class AccessibilityInitializer {
             HorarioDTO horarios = horarioService.getHorarios(rolEquipoId);
 
             if (horarios == null) {
-                logger.warning(" API retornó horarios null");
+                logger.warning("  API retornó horarios null");
                 return null;
             }
 
@@ -103,7 +136,7 @@ public class AccessibilityInitializer {
 
             KioskoApplication.setCameraScheduler(scheduler);
 
-            logger.info(" Smart Camera Scheduler inicializado");
+            logger.info("  Smart Camera Scheduler inicializado");
             logger.info("     - Verificación cada hora");
             logger.info("     - Recarga horarios cada 6 horas");
             logger.info("     - Activación/desactivación automática");
@@ -118,6 +151,13 @@ public class AccessibilityInitializer {
         logger.info("Desactivando sistemas de accesibilidad...");
 
         try {
+            ProximityDetector proximityDetector = KioskoApplication.getProximityDetector();
+            if (proximityDetector != null) {
+                proximityDetector.shutdown();
+                KioskoApplication.setProximityDetector(null);
+                logger.info("ProximityDetector detenido");
+            }
+
             SmartCameraSchedulerDynamic scheduler = KioskoApplication.getCameraScheduler();
             if (scheduler != null) {
                 scheduler.shutdown();

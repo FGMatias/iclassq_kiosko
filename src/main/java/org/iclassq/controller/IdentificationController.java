@@ -19,18 +19,18 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class IdentificationController {
+
     private final IdentificationView view;
     private final TipoDocumentoService tipoDocumentoService;
     private final Logger logger = Logger.getLogger(IdentificationController.class.getName());
 
-    private Map<String, Integer> documentTypesMap = new HashMap<>();
+    private final Map<String, Integer> documentTypesMap = new HashMap<>();
 
     private DisabilityDetectionAdapter detectionAdapter;
     private final ProximityDetectionAdapter proximityAdapter;
     private final IdentificationVoiceAdapter voiceAdapter;
 
     private boolean isInitialLoad = true;
-    private boolean isTesting = false;
 
     public IdentificationController(IdentificationView view) {
         this.view = view;
@@ -41,69 +41,48 @@ public class IdentificationController {
         view.setOnDelete(this::handleDelete);
         view.setOnDeleteAll(this::handleDeleteAll);
 
-//        enableAccessibilityForTesting();
-        AccessibilityManager.getInstance().enableAccessibility();
-        if (!isTesting) {
-            this.detectionAdapter = new DisabilityDetectionAdapter();
-        } else {
-            this.detectionAdapter = null;
-            logger.info("DetectionAdapter NO creado - Modo testing activo");
-        }
         this.voiceAdapter = new IdentificationVoiceAdapter();
-//        this.proximityAdapter = null;
         this.proximityAdapter = ProximityDetectionAdapter.getInstance();
-        this.proximityAdapter.onDetectionCompleted(proximityDetected -> {
-            if (proximityDetected) {
-                logger.info("Arduino detectó presencia - iniciando detección por cámara");
 
-                this.detectionAdapter = new DisabilityDetectionAdapter();
-
-            } else {
-                logger.info("Arduino no detectó presencia continua");
-                logger.info("   Usuario se retiró antes de completar 5 segundos");
-                logger.info("   Continuando en modo visual normal (sin accesibilidad)");
-
-                AccessibilityManager.getInstance().disableAccessibility();
-            }
-        });
-
+        setupProximityDetection();
         loadDocumentTypes();
         initializeProximityDetection();
     }
 
-    private void enableAccessibilityForTesting() {
-        isTesting = true;
-        logger.warning("═══════════════════════════════════════════");
-        logger.warning("🧪 MODO TESTING - Servicios Forzados");
-        logger.warning("═══════════════════════════════════════════");
-        logger.warning("Activando Voz + Braille sin detección");
-        logger.warning("RECORDAR: Comentar en producción");
-        logger.warning("═══════════════════════════════════════════");
+    private void setupProximityDetection() {
+        if (proximityAdapter == null) {
+            logger.warning("ProximityDetectionAdapter no disponible - continuando sin detección");
+            return;
+        }
 
-        AccessibilityManager.getInstance().enableAccessibility();
-
-        new Thread(() -> {
-            try {
-                Thread.sleep(2000);
-                AccessibilityManager.getInstance().printStatus();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+        proximityAdapter.onDetectionCompleted(proximityDetected -> {
+            if (proximityDetected) {
+                logger.info("Presencia confirmada por Arduino - iniciando detección por cámara");
+                this.detectionAdapter = new DisabilityDetectionAdapter();
+            } else {
+                logger.info("Usuario se retiró antes de completar detección - modo normal");
+                AccessibilityManager.getInstance().disableAccessibility();
             }
-        }).start();
+        });
     }
 
     private void initializeProximityDetection() {
+        if (proximityAdapter == null) {
+            logger.warning("No se puede iniciar detección - adaptador no disponible");
+            return;
+        }
+
         logger.info("Preparando inicio de detección de proximidad");
 
         new Thread(() -> {
             try {
                 Thread.sleep(500);
                 Platform.runLater(() -> {
-                    logger.info("Iniciando detección de proximidad en IdentificationView");
+                    logger.info("Iniciando detección de proximidad");
                     proximityAdapter.start();
                 });
             } catch (InterruptedException e) {
-                logger.warning("Thread de inicialización interrumpido");
+                logger.warning("Inicialización de proximidad interrumpida");
                 Thread.currentThread().interrupt();
             }
         }, "ProximityInitThread").start();
@@ -112,21 +91,23 @@ public class IdentificationController {
     public void cleanup() {
         logger.info("Limpiando recursos de IdentificationController");
 
-//        proximityAdapter.stop();
-
         if (proximityAdapter != null) {
             proximityAdapter.stop();
+            logger.info("   ProximityDetectionAdapter detenido");
         }
 
-        if (detectionAdapter != null) {
-            logger.info("   Limpiando DisabilityDetectionAdapter");
-        }
+        voiceAdapter.cleanup();
+        logger.info("   VoiceAdapter limpiado");
 
-        logger.info("   Limpiando servicios de voz");
         logger.info("Recursos limpiados correctamente");
     }
 
     public void resetProximityDetection() {
+        if (proximityAdapter == null) {
+            logger.warning("No se puede resetear proximidad - adaptador no disponible");
+            return;
+        }
+
         logger.info("Reseteando detección de proximidad para nueva sesión");
         proximityAdapter.reset();
         initializeProximityDetection();
@@ -149,11 +130,27 @@ public class IdentificationController {
                 Platform.runLater(() ->
                         Message.showError(
                                 "Error al cargar datos",
-                                "No se pudieron cargar los tipos de documento"
+                                "No se pudieron cargar los tipos de documento. " +
+                                        "Por favor reinicie la aplicación."
                         )
                 );
             }
-        }).start();
+        }, "LoadDocTypesThread").start();
+    }
+
+    private void populateDocumentTypes(List<TipoDocumentoDTO> list) {
+        view.getTypeDocument().getItems().clear();
+        documentTypesMap.clear();
+
+        for (TipoDocumentoDTO type : list) {
+            String descripcion = type.getDescripcion();
+            view.getTypeDocument().getItems().add(descripcion);
+            documentTypesMap.put(descripcion, type.getId());
+        }
+
+        if (!list.isEmpty()) {
+            view.getTypeDocument().setValue(list.get(0).getDescripcion());
+        }
     }
 
     private void handleNext() {
@@ -184,17 +181,6 @@ public class IdentificationController {
             return;
         }
 
-        if (view.getCurrentConfig() != null) {
-            if (!view.getCurrentConfig().isValidLength(numeroDoc)) {
-                Message.showWarning(
-                        "Documento inválido",
-                        view.getCurrentConfig().getLengthErrorMessage()
-                );
-                voiceAdapter.onValidationError(view.getCurrentConfig().getLengthErrorMessage());
-                return;
-            }
-        }
-
         SessionData.getInstance().setTipoDocumento(tipoDocId);
         SessionData.getInstance().setTipoDocumentoDescripcion(tipoDocDescripcion);
         SessionData.getInstance().setNumeroDocumento(numeroDoc);
@@ -207,21 +193,22 @@ public class IdentificationController {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-
-            Platform.runLater(() -> Navigator.navigateToGroups());
-        }).start();
+            Platform.runLater(Navigator::navigateToGroups);
+        }, "NavigateToGroupsThread").start();
     }
 
     private void handleDelete() {
         String currentText = view.getDocumentNumber().getText();
         if (!currentText.isEmpty()) {
             view.getDocumentNumber().setText(currentText.substring(0, currentText.length() - 1));
+            view.updateLengthIndicator();
             voiceAdapter.onCharacterDeleted();
         }
     }
 
     private void handleDeleteAll() {
         view.getDocumentNumber().clear();
+        view.updateLengthIndicator();
         voiceAdapter.onFieldCleared();
     }
 
@@ -240,21 +227,6 @@ public class IdentificationController {
             if (!isInitialLoad) {
                 voiceAdapter.onDocumentTypeSelected(tipoDocDescripcion);
             }
-        }
-    }
-
-    private void populateDocumentTypes(List<TipoDocumentoDTO> list) {
-        view.getTypeDocument().getItems().clear();
-        documentTypesMap.clear();
-
-        for (TipoDocumentoDTO type : list) {
-            String descripcion = type.getDescripcion();
-            view.getTypeDocument().getItems().add(descripcion);
-            documentTypesMap.put(descripcion, type.getId());
-        }
-
-        if (!list.isEmpty()) {
-            view.getTypeDocument().setValue(list.get(0).getDescripcion());
         }
     }
 
@@ -277,6 +249,7 @@ public class IdentificationController {
     private void handleNumbersRecognized(String numbers) {
         String currentText = view.getDocumentNumber().getText();
         view.getDocumentNumber().setText(currentText + numbers);
+        view.updateLengthIndicator();
     }
 
     private void handleNextVoice() {

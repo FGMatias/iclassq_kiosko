@@ -59,7 +59,7 @@ public class IdentificationVoiceAdapter {
 
         String message = String.format(
                 "Has seleccionado %s. Ahora ingresa tu número de documento. " +
-                "Puedes dictarlo número por número o usar el teclado en pantalla.",
+                        "Puedes dictarlo número por número o usar el teclado en pantalla.",
                 descripcion
         );
 
@@ -90,6 +90,13 @@ public class IdentificationVoiceAdapter {
 
         voice.stopSpeaking();
         voice.speak("Avanzando a la siguiente pantalla.");
+    }
+
+    public void cleanup() {
+        if (!isVoiceActive()) return;
+
+        logger.info("Limpiando comandos de identificación");
+        voice.clearCommands();
     }
 
     private void announceWelcomeAndDocumentTypes(List<TipoDocumentoDTO> documentTypes) {

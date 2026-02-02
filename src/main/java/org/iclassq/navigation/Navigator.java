@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 public class Navigator {
     private static final Logger logger = Logger.getLogger(Navigator.class.getName());
 
+    private static final int TTS_CLEANUP_DELAY_MS = 200;
     private static Stage primaryStage;
     private static Scene mainScene;
     private static Stack<Parent> history = new Stack<>();
@@ -85,7 +86,7 @@ public class Navigator {
 
     public static void navigateToIdentification() {
         cleanupCurrentController();
-
+        waitForTTSCleanup();
         resetProximitySystem();
 
         IdentificationView view = new IdentificationView();
@@ -98,6 +99,7 @@ public class Navigator {
 
     public static void navigateToGroups() {
         cleanupCurrentController();
+        waitForTTSCleanup();
 
         GruposView view = new GruposView();
         GruposController controller = new GruposController(view);
@@ -109,6 +111,7 @@ public class Navigator {
 
     public static void navigateToSubGroups() {
         cleanupCurrentController();
+        waitForTTSCleanup();
 
         SubGruposView view = new SubGruposView();
         SubGruposController controller = new SubGruposController(view);
@@ -120,6 +123,7 @@ public class Navigator {
 
     public static void navigatoToTicket(TicketResponseDTO ticket) {
         cleanupCurrentController();
+        waitForTTSCleanup();
 
         TicketView view = new TicketView(ticket);
         TicketController controller = new TicketController(view);
@@ -135,6 +139,21 @@ public class Navigator {
         PauseTransition delay = new PauseTransition(Duration.seconds(5));
         delay.setOnFinished(evt -> navigateToIdentification());
         delay.play();
+    }
+
+    private static void waitForTTSCleanup() {
+        try {
+            VoiceAssistant voice = AccessibilityManager.getInstance().getVoiceAssistant();
+            if (voice != null && voice.wasRecentlyStopped()) {
+                logger.fine("Esperando " + TTS_CLEANUP_DELAY_MS + "ms para limpieza de TTS");
+                Thread.sleep(TTS_CLEANUP_DELAY_MS);
+            }
+        } catch (InterruptedException e) {
+            logger.warning("Delay de TTS interrumpido: " + e.getMessage());
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            logger.fine("Error al verificar estado TTS: " + e.getMessage());
+        }
     }
 
     private static void resetProximitySystem() {
