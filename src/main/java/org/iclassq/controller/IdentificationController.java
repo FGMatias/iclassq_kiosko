@@ -41,8 +41,8 @@ public class IdentificationController {
         view.setOnDelete(this::handleDelete);
         view.setOnDeleteAll(this::handleDeleteAll);
 
-        enableAccessibilityForTesting();
-//        AccessibilityManager.getInstance().enableAccessibility();
+//        enableAccessibilityForTesting();
+        AccessibilityManager.getInstance().enableAccessibility();
         if (!isTesting) {
             this.detectionAdapter = new DisabilityDetectionAdapter();
         } else {
@@ -50,25 +50,25 @@ public class IdentificationController {
             logger.info("DetectionAdapter NO creado - Modo testing activo");
         }
         this.voiceAdapter = new IdentificationVoiceAdapter();
-        this.proximityAdapter = null;
-//        this.proximityAdapter = new ProximityDetectionAdapter();
-//        this.proximityAdapter.onDetectionCompleted(proximityDetected -> {
-//            if (proximityDetected) {
-//                logger.info("Arduino detectó presencia - iniciando detección por cámara");
-//
-//                this.detectionAdapter = new DisabilityDetectionAdapter();
-//
-//            } else {
-//                logger.info("Arduino no detectó presencia continua");
-//                logger.info("   Usuario se retiró antes de completar 5 segundos");
-//                logger.info("   Continuando en modo visual normal (sin accesibilidad)");
-//
-//                AccessibilityManager.getInstance().disableAccessibility();
-//            }
-//        });
+//        this.proximityAdapter = null;
+        this.proximityAdapter = ProximityDetectionAdapter.getInstance();
+        this.proximityAdapter.onDetectionCompleted(proximityDetected -> {
+            if (proximityDetected) {
+                logger.info("Arduino detectó presencia - iniciando detección por cámara");
+
+                this.detectionAdapter = new DisabilityDetectionAdapter();
+
+            } else {
+                logger.info("Arduino no detectó presencia continua");
+                logger.info("   Usuario se retiró antes de completar 5 segundos");
+                logger.info("   Continuando en modo visual normal (sin accesibilidad)");
+
+                AccessibilityManager.getInstance().disableAccessibility();
+            }
+        });
 
         loadDocumentTypes();
-//        initializeProximityDetection();
+        initializeProximityDetection();
     }
 
     private void enableAccessibilityForTesting() {
@@ -112,7 +112,11 @@ public class IdentificationController {
     public void cleanup() {
         logger.info("Limpiando recursos de IdentificationController");
 
-        proximityAdapter.stop();
+//        proximityAdapter.stop();
+
+        if (proximityAdapter != null) {
+            proximityAdapter.stop();
+        }
 
         if (detectionAdapter != null) {
             logger.info("   Limpiando DisabilityDetectionAdapter");

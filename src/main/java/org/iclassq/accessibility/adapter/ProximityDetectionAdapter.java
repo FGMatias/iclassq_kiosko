@@ -14,12 +14,21 @@ import java.util.logging.Logger;
 public class ProximityDetectionAdapter {
     private static final Logger logger = Logger.getLogger(ProximityDetectionAdapter.class.getName());
 
+    private static ProximityDetectionAdapter instance;
+
     private Consumer<Boolean> onDetectionCompleted;
     private final AtomicBoolean detectionExecuted = new AtomicBoolean(false);
     private ProximityDetectionService detectionService;
 
-    public ProximityDetectionAdapter() {
-        logger.info("ProximityDetectionAdapter creado (modo espera)");
+    private ProximityDetectionAdapter() {
+        logger.info("ProximityDetectionAdapter creado (Singleton - modo espera)");
+    }
+
+    public static synchronized ProximityDetectionAdapter getInstance() {
+        if (instance == null) {
+            instance = new ProximityDetectionAdapter();
+        }
+        return instance;
     }
 
     public void onDetectionCompleted(Consumer<Boolean> callback) {
@@ -28,23 +37,31 @@ public class ProximityDetectionAdapter {
 
     public void start() {
         if (detectionExecuted.get()) {
-            logger.warning("Deteccion ya fue ejecutada, ignorando llamada a start");
-            logger.warning("Usa reset() si necesitas reiniciar la deteccion");
+            logger.warning("Detección ya fue ejecutada, ignorando llamada a start");
+            logger.warning("Usa reset() si necesitas reiniciar la detección");
             return;
         }
 
-        logger.info("Iniciando deteccion de proximidad");
+        logger.info("Iniciando detección de proximidad");
         executeDetection();
     }
 
     public void stop() {
-        logger.info("Deteniendo deteccion de proximidad");
+        logger.info("Deteniendo detección de proximidad");
         detectionExecuted.set(true);
     }
 
     public void reset() {
-        logger.info("Reseteando detector de proximidad");
+        logger.info("═══════════════════════════════════════════");
+        logger.info("RESETEANDO DETECTOR DE PROXIMIDAD");
+        logger.info("═══════════════════════════════════════════");
+        logger.info("   Estado anterior: detectionExecuted = " + detectionExecuted.get());
+
         detectionExecuted.set(false);
+
+        logger.info("   Estado nuevo: detectionExecuted = " + detectionExecuted.get());
+        logger.info("   Sistema listo para detectar nueva persona");
+        logger.info("═══════════════════════════════════════════");
     }
 
     public boolean isDetectionExecuted() {

@@ -44,7 +44,6 @@ public class GruposBrailleAdapter {
         brailleService.onButtonPressed(this::handleButtonPressed);
 
         logger.info(String.format("Braille configurado con %d grupos", this.grupos.size()));
-        announceAvailableGroups();
     }
 
     public boolean handleKeyEvent(KeyEvent event) {
@@ -94,23 +93,6 @@ public class GruposBrailleAdapter {
                 onGroupSelected.accept(selectedGroup);
             }
         }).start();
-    }
-
-    private void announceAvailableGroups() {
-        if (voiceAssistant == null || !voiceAssistant.isActive()) {
-            return;
-        }
-
-        StringBuilder message = new StringBuilder("Seleccione un grupo con el teclado Braille. ");
-        message.append("Opciones disponibles: ");
-
-        for (int i = 0; i < grupos.size(); i++) {
-            GrupoDTO grupo = grupos.get(i);
-            String buttonName = brailleService.getButtonName(i);
-            message.append(String.format("Botón %s, %s. ", buttonName, grupo.getNombre()));
-        }
-
-        voiceAssistant.speak(message.toString());
     }
 
     public void cleanup() {

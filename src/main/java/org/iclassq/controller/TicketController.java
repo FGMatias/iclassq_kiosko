@@ -1,11 +1,13 @@
 package org.iclassq.controller;
 
 import javafx.application.Platform;
+import org.iclassq.accessibility.AccessibilityManager;
 import org.iclassq.accessibility.adapter.TicketVoiceAdapter;
 import org.iclassq.model.dto.response.TicketResponseDTO;
 import org.iclassq.navigation.Navigator;
 import org.iclassq.printer.PrinterService;
 import org.iclassq.printer.impl.PrinterServiceImpl;
+import org.iclassq.util.voice.VoiceAssistant;
 import org.iclassq.view.TicketView;
 
 import java.util.logging.Logger;
@@ -62,10 +64,16 @@ public class TicketController {
     }
 
     private void handleCloseVoice() {
-        voiceAdapter.onClosing(() -> {
-            Platform.runLater(() -> {
-                Navigator.navigateToIdentification();
-            });
+        logger.info("Usuario solicitó salir - Deteniendo voz inmediatamente");
+
+        VoiceAssistant voice = AccessibilityManager.getInstance().getVoiceAssistant();
+        if (voice != null && voice.isActive()) {
+            voice.stopSpeaking();
+        }
+
+        Platform.runLater(() -> {
+            logger.info("Navegando a IdentificationView");
+            Navigator.navigateToIdentification();
         });
     }
 }

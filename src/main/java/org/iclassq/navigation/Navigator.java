@@ -6,15 +6,20 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import lombok.extern.java.Log;
+import org.iclassq.accessibility.AccessibilityManager;
+import org.iclassq.accessibility.adapter.ProximityDetectionAdapter;
 import org.iclassq.controller.*;
 import org.iclassq.model.domain.SessionData;
 import org.iclassq.model.dto.response.TicketResponseDTO;
+import org.iclassq.util.voice.VoiceAssistant;
 import org.iclassq.view.*;
 
 import java.util.Stack;
+import java.util.logging.Logger;
 
 public class Navigator {
+    private static final Logger logger = Logger.getLogger(Navigator.class.getName());
+
     private static Stage primaryStage;
     private static Scene mainScene;
     private static Stack<Parent> history = new Stack<>();
@@ -81,6 +86,8 @@ public class Navigator {
     public static void navigateToIdentification() {
         cleanupCurrentController();
 
+        resetProximitySystem();
+
         IdentificationView view = new IdentificationView();
         IdentificationController controller = new IdentificationController(view);
 
@@ -130,7 +137,32 @@ public class Navigator {
         delay.play();
     }
 
+    private static void resetProximitySystem() {
+        try {
+            ProximityDetectionAdapter proximityAdapter = ProximityDetectionAdapter.getInstance();
+            proximityAdapter.reset();
+
+            logger.info("Sistema de proximidad reseteado - Listo para siguiente usuario");
+        } catch (Exception e) {
+            logger.warning("Error al resetear proximidad: " + e.getMessage());
+        }
+    }
+
+    private static void stopAllVoice() {
+        try {
+            VoiceAssistant voice = AccessibilityManager.getInstance().getVoiceAssistant();
+            if (voice != null && voice.isActive()) {
+                voice.stopSpeaking();
+                logger.info("Voz detenida antes de cambio de vista");
+            }
+        } catch (Exception e) {
+            logger.warning("Error al detener voz: " + e.getMessage());
+        }
+    }
+
     private static void cleanupCurrentController() {
+        stopAllVoice();
+
         if (currentController == null) {
             return;
         }
@@ -144,7 +176,7 @@ public class Navigator {
                 ((SubGruposController) currentController).shutdown();
             }
         } catch (Exception e) {
-            System.err.println("Error al limpiar controller: " + e.getMessage());
+            logger.warning("Error al limpiar controller: " + e.getMessage());
         }
     }
 }
