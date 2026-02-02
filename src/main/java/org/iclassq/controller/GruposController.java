@@ -40,6 +40,8 @@ public class GruposController {
     private boolean isInitialLoad = true;
     private List<GrupoDTO> allGroups;
 
+    private volatile boolean isProcessingSelection = false;
+
     public GruposController(GruposView view) {
         this.view = view;
         this.grupoService = ServiceFactory.getGrupoService();
@@ -95,6 +97,7 @@ public class GruposController {
 
                     if (AccessibilityManager.getInstance().isBrailleActive()) {
                         brailleAdapter.onGroupsLoaded(this.allGroups, this::selectGroupByBraille);
+                        logger.info("Voz y Braille configurados - Usuario puede usar cualquiera de los dos");
                     }
 
                     isInitialLoad = false;
@@ -134,25 +137,35 @@ public class GruposController {
     }
 
     private void selectGroupByVoice(GrupoDTO grupo) {
+        logger.info("Selección por VOZ: " + grupo.getNombre());
         voiceAdapter.onGroupSelectedByVoice(grupo, this::handleGrupoSelected);
     }
 
     private void selectGroupByBraille(GrupoDTO grupo) {
+        logger.info("Selección por BRAILLE: " + grupo.getNombre());
         handleGrupoSelectedWithDisability(grupo);
     }
 
     private void handleGrupoSelected(GrupoDTO grupo) {
+        if (isProcessingSelection) {
+            logger.warning("Ya se está procesando una selección, ignorando nueva selección");
+            return;
+        }
+
+        isProcessingSelection = true;
+
         try {
             SessionData.getInstance().setGrupo(grupo);
 
             boolean hasDisability = AccessibilityManager.getInstance().isAccessibilityEnabled();
 
             if (hasDisability) {
-                logger.info("🔲 Discapacidad detectada - Generando ticket preferencial directo");
+                logger.info("Discapacidad detectada - Generando ticket preferencial directo");
                 handleGrupoSelectedWithDisability(grupo);
             } else {
                 voiceAdapter.onNavigating();
                 voiceAdapter.cleanup();
+                brailleAdapter.cleanup();
 
                 new Thread(() -> {
                     try {
@@ -161,12 +174,16 @@ public class GruposController {
                         Thread.currentThread().interrupt();
                     }
 
-                    Platform.runLater(() -> Navigator.navigateToSubGroups());
+                    Platform.runLater(() -> {
+                        isProcessingSelection = false;
+                        Navigator.navigateToSubGroups();
+                    });
                 }).start();
             }
 
         } catch (Exception e) {
             logger.severe("Error al seleccionar grupo: " + e.getMessage());
+            isProcessingSelection = false;
             Message.showError(
                     "Error",
                     "No se pudo seleccionar el grupo. Por favor intente nuevamente."
@@ -175,6 +192,10 @@ public class GruposController {
     }
 
     private void handleGrupoSelectedWithDisability(GrupoDTO grupo) {
+        if (!isProcessingSelection) {
+            isProcessingSelection = true;
+        }
+
         SessionData.getInstance().setGrupo(grupo);
 
         view.showLoading();
@@ -209,6 +230,7 @@ public class GruposController {
 
                 Platform.runLater(() -> {
                     view.hideLoading();
+                    isProcessingSelection = false;
                     Navigator.navigatoToTicket(ticket);
                 });
 
@@ -216,6 +238,7 @@ public class GruposController {
                 logger.severe("Error de conexión: " + e.getMessage());
                 Platform.runLater(() -> {
                     view.hideLoading();
+                    isProcessingSelection = false;
                     Message.showError(
                             "Error de Conexión",
                             "No se pudo generar el ticket preferencial. Verifique su conexión."
@@ -225,6 +248,7 @@ public class GruposController {
                 logger.severe("Error al generar ticket preferencial: " + e.getMessage());
                 Platform.runLater(() -> {
                     view.hideLoading();
+                    isProcessingSelection = false;
                     Message.showError(
                             "Error",
                             "No se pudo generar el ticket: " + e.getMessage()
@@ -273,7 +297,10 @@ public class GruposController {
                 Thread.currentThread().interrupt();
             }
 
-            Platform.runLater(() -> Navigator.navigateToIdentification());
+            Platform.runLater(() -> {
+                isProcessingSelection = false;
+                Navigator.navigateToIdentification();
+            });
         }).start();
     }
 
@@ -285,5 +312,7 @@ public class GruposController {
             currentTask.cancel(true);
         }
         executor.shutdown();
+
+        isProcessingSelection = false;
     }
 }

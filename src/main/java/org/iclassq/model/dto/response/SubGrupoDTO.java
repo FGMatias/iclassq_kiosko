@@ -13,4 +13,5 @@ public class SubGrupoDTO {
     private Integer iSubGrupo;
     private String vNombreSubGrupo;
     private String vPrefijo;
+    private Integer agrupador;
 }

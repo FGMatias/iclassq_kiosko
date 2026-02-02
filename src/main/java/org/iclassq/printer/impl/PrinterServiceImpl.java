@@ -67,16 +67,13 @@ public class PrinterServiceImpl implements PrinterService {
         PageFormat pageFormat = new PageFormat();
         pageFormat.setOrientation(PageFormat.PORTRAIT);
 
-        // Papel térmico típico: 80mm de ancho
         Paper paper = new Paper();
 
-        // Dimensiones en puntos (1/72 de pulgada)
-        double width = 226;    // ~80mm
-        double height = 800;   // Alto variable
+        double width = 226;
+        double height = 800;
 
         paper.setSize(width, height);
 
-        // Márgenes pequeños
         double margin = 5;
         paper.setImageableArea(
                 margin,

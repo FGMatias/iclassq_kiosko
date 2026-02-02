@@ -35,9 +35,9 @@ public class SubGrupoServiceImpl extends BaseService implements SubGrupoService 
 
     @Override
     public SubGrupoDTO getPreferencial(Integer sucursalId, Integer grupoId) throws IOException {
-        logger.info("Obteniendo subgrupo preferencial - grupo: " + grupoId);
+        logger.info("Obteniendo subgrupo preferencial - grupo: " + grupoId + ", sucursal: " + sucursalId);
 
-        String url = baseUrl + "/getsubgrupopreferencial.app?idGrupo=" + grupoId + "&idSucursal=" + sucursalId;
+        String url = baseUrl + "/listarsubgruposxgrupoandsucursal.app?idSucursal=" + sucursalId + "&idGrupo=" + grupoId;
 
         Request request = new Request.Builder()
                 .url(url)
@@ -45,16 +45,28 @@ public class SubGrupoServiceImpl extends BaseService implements SubGrupoService 
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            SubGrupoDTO subgrupo = parseData(response, SubGrupoDTO.class);
+            List<SubGrupoDTO> subgrupos = parseDataList(response, SubGrupoDTO.class);
 
-            if (subgrupo != null) {
-                logger.info(String.format("Subgrupo preferencial encontrado: %s (ID: %d)",
-                        subgrupo.getVNombreSubGrupo(), subgrupo.getISubGrupo()));
-            } else {
-                logger.warning("No se encontró subgrupo preferencial");
+            if (subgrupos == null || subgrupos.isEmpty()) {
+                logger.warning("No se encontraron subgrupos para el grupo " + grupoId);
+                return null;
             }
 
-            return subgrupo;
+            for (SubGrupoDTO sg : subgrupos) {
+                if (sg.getAgrupador() != null && sg.getAgrupador() == 2) {
+                    logger.info(String.format("Subgrupo preferencial encontrado: %s (ID: %d, Prefijo: %s, Agrupador: %d)",
+                            sg.getVNombreSubGrupo(),
+                            sg.getISubGrupo(),
+                            sg.getVPrefijo(),
+                            sg.getAgrupador()));
+                    return sg;
+                }
+            }
+
+            SubGrupoDTO primero = subgrupos.get(0);
+            logger.warning(String.format("No se encontró subgrupo con agrupador=2, usando primero disponible: %s (ID: %d)",
+                    primero.getVNombreSubGrupo(), primero.getISubGrupo()));
+            return primero;
         }
     }
 }

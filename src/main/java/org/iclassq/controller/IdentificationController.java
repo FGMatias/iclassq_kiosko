@@ -30,6 +30,7 @@ public class IdentificationController {
     private final IdentificationVoiceAdapter voiceAdapter;
 
     private boolean isInitialLoad = true;
+    private boolean isTesting = false;
 
     public IdentificationController(IdentificationView view) {
         this.view = view;
@@ -40,8 +41,14 @@ public class IdentificationController {
         view.setOnDelete(this::handleDelete);
         view.setOnDeleteAll(this::handleDeleteAll);
 
+        enableAccessibilityForTesting();
 //        AccessibilityManager.getInstance().enableAccessibility();
-        this.detectionAdapter = new DisabilityDetectionAdapter();
+        if (!isTesting) {
+            this.detectionAdapter = new DisabilityDetectionAdapter();
+        } else {
+            this.detectionAdapter = null;
+            logger.info("DetectionAdapter NO creado - Modo testing activo");
+        }
         this.voiceAdapter = new IdentificationVoiceAdapter();
         this.proximityAdapter = null;
 //        this.proximityAdapter = new ProximityDetectionAdapter();
@@ -62,6 +69,27 @@ public class IdentificationController {
 
         loadDocumentTypes();
 //        initializeProximityDetection();
+    }
+
+    private void enableAccessibilityForTesting() {
+        isTesting = true;
+        logger.warning("═══════════════════════════════════════════");
+        logger.warning("🧪 MODO TESTING - Servicios Forzados");
+        logger.warning("═══════════════════════════════════════════");
+        logger.warning("Activando Voz + Braille sin detección");
+        logger.warning("RECORDAR: Comentar en producción");
+        logger.warning("═══════════════════════════════════════════");
+
+        AccessibilityManager.getInstance().enableAccessibility();
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(2000);
+                AccessibilityManager.getInstance().printStatus();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }).start();
     }
 
     private void initializeProximityDetection() {
