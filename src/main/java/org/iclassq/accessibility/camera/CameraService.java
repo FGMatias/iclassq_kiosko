@@ -99,7 +99,7 @@ public class CameraService {
             return new HashMap<>();
         }
 
-        logger.info("📸 Capturando frames de todas las cámaras...");
+        logger.info("Capturando frames de todas las cámaras...");
 
         Map<Integer, List<BufferedImage>> allFrames = new ConcurrentHashMap<>();
         List<Future<Void>> futures = new ArrayList<>();
@@ -208,32 +208,6 @@ public class CameraService {
                 .anyMatch(camera -> camera.getIndex() == index);
     }
 
-    public String getServiceInfo() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\n═══════════════════════════════════════\n");
-        sb.append("📸 CAMERA SERVICE INFO\n");
-        sb.append("═══════════════════════════════════════\n");
-        sb.append(String.format("Estado: %s\n", initialized ? "Activo" : "Inactivo"));
-        sb.append(String.format("Cámaras detectadas: %d\n", availableCameras.size()));
-        sb.append(String.format("Cámaras inicializadas: %d\n", cameras.size()));
-        sb.append(String.format("Configuración: %s\n", config));
-
-        if (!availableCameras.isEmpty()) {
-            sb.append("\nCámaras disponibles:\n");
-            for (CameraInfo camera : availableCameras) {
-                String status = cameras.containsKey(camera.getIndex()) ? "✅" : "⏸️";
-                sb.append(String.format("  %s [%d] %s - %s\n",
-                        status,
-                        camera.getIndex(),
-                        camera.getName(),
-                        camera.getType().getDescription()));
-            }
-        }
-
-        sb.append("═══════════════════════════════════════\n");
-        return sb.toString();
-    }
-
     public List<BufferedImage> captureSingleFrameFromAllCameras() {
         if (!initialized) {
             logger.warning("CameraService no está inicializado");
@@ -271,9 +245,5 @@ public class CameraService {
                 frames.size(), cameras.size()));
 
         return frames;
-    }
-
-    public void printServiceInfo() {
-        System.out.println(getServiceInfo());
     }
 }

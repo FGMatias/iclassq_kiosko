@@ -94,14 +94,11 @@ public class VoiceManager {
     }
 
     private void logServiceStatus() {
-        logger.info("═══════════════════════════════════════");
         logger.info("  ESTADO DE SERVICIOS DE VOZ");
-        logger.info("═══════════════════════════════════════");
         logger.info("  TTS (Síntesis):      " + (isTTSAvailable() ? "Disponible (Windows SAPI)" : "No disponible"));
         logger.info("  STT (Reconocimiento): " + (isSTTAvailable() ? "Disponible (Vosk)" : "No disponible"));
         logger.info("  Auto-hablar:         " + (autoSpeak ? "Activo" : "Inactivo"));
         logger.info("  Auto-escuchar:       " + (autoListen ? "Activo" : "Inactivo"));
-        logger.info("═══════════════════════════════════════");
     }
 
     public void setExpectedWords(List<String> words) {

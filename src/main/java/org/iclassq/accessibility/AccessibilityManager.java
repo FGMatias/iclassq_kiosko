@@ -17,7 +17,6 @@ public class AccessibilityManager {
     private BrailleService brailleService = null;
 
     private AccessibilityManager() {
-        logger.info("AccessibilityManager inicializado");
     }
 
     public static synchronized AccessibilityManager getInstance() {
@@ -49,8 +48,8 @@ public class AccessibilityManager {
             if (activated) {
                 brailleService.enable();
                 accessibilityEnabled = true;
-                logger.info("Servicios de accesibilidad HABILITADOS");
-                logger.info("   VoiceAssistant compartido ACTIVO");
+                logger.info("Servicios de accesibilidad habilitados");
+                logger.info("   VoiceAssistant compartido activo");
             } else {
                 logger.warning("No se pudo activar VoiceAssistant");
                 voiceAssistant = null;
@@ -123,26 +122,4 @@ public class AccessibilityManager {
         logger.info("AccessibilityManager reseteado");
     }
 
-    public String getStatusInfo() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\n═══════════════════════════════════════\n");
-        sb.append("ACCESSIBILITY MANAGER STATUS\n");
-        sb.append("═══════════════════════════════════════\n");
-        sb.append(String.format("Accesibilidad: %s\n",
-                accessibilityEnabled ? "HABILITADA" : "DESHABILITADA"));
-        sb.append(String.format("VoiceAssistant: %s\n",
-                voiceAssistant != null ? "DISPONIBLE" : "NULL"));
-        sb.append(String.format("Voz Activa: %s\n",
-                isVoiceActive() ? "SÍ" : "NO"));
-        sb.append(String.format("BrailleService: %s\n",
-                brailleService != null ? "DISPONIBLE" : "NULL"));
-        sb.append(String.format("Braille Activo: %s\n",
-                isBrailleActive() ? "SÍ" : "NO"));
-        sb.append("═══════════════════════════════════════\n");
-        return sb.toString();
-    }
-
-    public void printStatus() {
-        System.out.println(getStatusInfo());
-    }
 }

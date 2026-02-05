@@ -147,7 +147,7 @@ public class SubGruposView {
 
     public void setSubGroups(List<SubGrupoDTO> subGroups) {
         if (subGroupsGrid != null) {
-            root.getStyleClass().remove(subGroups);
+            body.getStyleClass().remove(subGroupsGrid);
         }
 
         if (subGroups == null || subGroups.isEmpty()) {

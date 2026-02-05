@@ -21,7 +21,6 @@ public class ProximityDetectionAdapter {
     private ProximityDetectionService detectionService;
 
     private ProximityDetectionAdapter() {
-        logger.info("ProximityDetectionAdapter creado (Singleton - modo espera)");
     }
 
     public static synchronized ProximityDetectionAdapter getInstance() {
@@ -38,7 +37,6 @@ public class ProximityDetectionAdapter {
     public void start() {
         if (detectionExecuted.get()) {
             logger.warning("Detección ya fue ejecutada, ignorando llamada a start");
-            logger.warning("Usa reset() si necesitas reiniciar la detección");
             return;
         }
 
@@ -52,16 +50,13 @@ public class ProximityDetectionAdapter {
     }
 
     public void reset() {
-        logger.info("═══════════════════════════════════════════");
-        logger.info("RESETEANDO DETECTOR DE PROXIMIDAD");
-        logger.info("═══════════════════════════════════════════");
-        logger.info("   Estado anterior: detectionExecuted = " + detectionExecuted.get());
+        logger.info("Reseteando detector de proximidad");
+        logger.info("   Estado anterior: " + detectionExecuted.get());
 
         detectionExecuted.set(false);
 
-        logger.info("   Estado nuevo: detectionExecuted = " + detectionExecuted.get());
+        logger.info("   Estado nuevo: " + detectionExecuted.get());
         logger.info("   Sistema listo para detectar nueva persona");
-        logger.info("═══════════════════════════════════════════");
     }
 
     public boolean isDetectionExecuted() {
@@ -81,7 +76,7 @@ public class ProximityDetectionAdapter {
         detectionService = detector.getDetectionService();
 
         detectionService.onReady(ready -> {
-            logger.info("Sistema de proximidad listo, esperando presencia...");
+            logger.info("Sistema de proximidad listo, esperando persona...");
             executeDetectionAsync();
         });
     }
@@ -97,7 +92,7 @@ public class ProximityDetectionAdapter {
 
     private void handleDetectionSuccess(boolean hasPresence) {
         if (!detectionExecuted.compareAndSet(false, true)) {
-            logger.info("Señal COMPLETE ignorada - detección ya procesada anteriormente");
+            logger.info("Señal COMPLETE ignorada, detección ya procesada anteriormente");
             logger.fine("   detectionExecuted = true, ignorando llamada subsecuente");
             return;
         }
@@ -118,13 +113,13 @@ public class ProximityDetectionAdapter {
     }
 
     private void handlePresenceDetected() {
-        logger.info("Presencia detectada (usuario cerca del sensor)");
-        logger.info("   Notificando a IdentificationController para iniciar cámara");
+        logger.info("Presencia detectada");
+        logger.info("   Notificando para iniciar cámara");
     }
 
     private void handleNoPresenceDetected() {
         logger.info("No se detectó presencia continua");
-        logger.info("   Usuario se acercó pero se retiró antes de 5 segundos");
+        logger.info("   Persona se acercó pero se retiró antes de 5 segundos");
 
         AccessibilityManager.getInstance().disableAccessibility();
     }

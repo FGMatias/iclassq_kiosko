@@ -130,7 +130,7 @@ public class GruposView {
 
     public void setGroups(List<GrupoDTO> groups) {
         if (groupsGrid != null) {
-            root.getStyleClass().remove(groups);
+            body.getStyleClass().remove(groupsGrid);
         }
 
         if (groups == null || groups.isEmpty()) {
@@ -194,7 +194,7 @@ public class GruposView {
 
         if (pageNumer > previousPage && onNextPage != null) {
             onNextPage.run();
-        } else {
+        } else if (pageNumer < previousPage && onPreviousPage != null) {
             onPreviousPage.run();
         }
     }

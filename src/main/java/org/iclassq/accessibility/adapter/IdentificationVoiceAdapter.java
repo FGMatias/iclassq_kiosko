@@ -25,7 +25,6 @@ public class IdentificationVoiceAdapter {
         }
 
         announceWelcomeAndDocumentTypes(documentTypes);
-        logger.info("Tipos de documento anunciados");
     }
 
     public void registerCommands(

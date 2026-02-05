@@ -25,7 +25,7 @@ public class DisabilityDetectionAdapter {
     }
 
     private void executeDetection() {
-        logger.info("Iniciando detección de discapacidad...");
+        logger.info("Iniciando detección de discapacidad");
 
         DisabilityDetector detector = KioskoApplication.getDisabilityDetector();
 
@@ -37,7 +37,7 @@ public class DisabilityDetectionAdapter {
         AccessibilityDetectionService detectionService = detector.getDetectionService();
 
         detectionService.onReady(ready -> {
-            logger.info("Sistema de detección listo, iniciando análisis...");
+            logger.info("Sistema de detección listo, iniciando análisis");
             executeDetectionAsync(detectionService);
         });
     }
@@ -82,7 +82,7 @@ public class DisabilityDetectionAdapter {
     }
 
     private void handleDetectionUnavailable() {
-        logger.warning("Sistema de detección no disponible - continuando en modo visual");
+        logger.warning("Sistema de detección no disponible - continuando en modo normal");
 
         Platform.runLater(() -> {
             AccessibilityManager.getInstance().disableAccessibility();

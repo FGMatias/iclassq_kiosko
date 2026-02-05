@@ -23,7 +23,7 @@ public class ProximityDetector {
 
     public boolean initialize() {
         try {
-            logger.info("Inicializando ProximityDetector...");
+            logger.info("Inicializando ProximityDetector");
 
             boolean success = detectionService.initialize(portName);
 

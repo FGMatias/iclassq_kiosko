@@ -64,7 +64,7 @@ public class TicketController {
     }
 
     private void handleCloseVoice() {
-        logger.info("Usuario solicitó salir - Deteniendo voz inmediatamente");
+        logger.info("Usuario solicitó salir, deteniendo voz inmediatamente");
 
         VoiceAssistant voice = AccessibilityManager.getInstance().getVoiceAssistant();
         if (voice != null && voice.isActive()) {

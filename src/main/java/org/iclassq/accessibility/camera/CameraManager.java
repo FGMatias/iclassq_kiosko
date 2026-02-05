@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class CameraManager {
 
@@ -137,29 +136,5 @@ public class CameraManager {
 
     public static CameraInfo getCameraInfo(int index) {
         return testCamera(index);
-    }
-
-    public static void printAvailableCameras() {
-        List<CameraInfo> cameras = detectAvailableCameras();
-
-        System.out.println("\n═══════════════════════════════════════");
-        System.out.println("CÁMARAS DISPONIBLES");
-        System.out.println("═══════════════════════════════════════");
-
-        if (cameras.isEmpty()) {
-            System.out.println("No se detectaron cámaras disponibles");
-        } else {
-            for (CameraInfo camera : cameras) {
-                System.out.println(String.format(
-                        "[%d] %s - %s",
-                        camera.getIndex(),
-                        camera.getName(),
-                        camera.getType().getDescription()
-                ));
-            }
-            System.out.println(String.format("\nTotal: %d cámara(s)", cameras.size()));
-        }
-
-        System.out.println("═══════════════════════════════════════\n");
     }
 }

@@ -14,7 +14,7 @@ public class AccessibilityInitializer {
 
     private static final Logger logger = Logger.getLogger(AccessibilityInitializer.class.getName());
 
-    public static void initializer() {
+    public static void initialize() {
         logger.info("═══════════════════════════════════════════");
         logger.info("  INICIALIZANDO SISTEMAS DE ACCESIBILIDAD");
         logger.info("═══════════════════════════════════════════");

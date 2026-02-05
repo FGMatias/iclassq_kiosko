@@ -74,7 +74,7 @@ public class ArduinoSerialServiceImpl implements ArduinoSerialService {
         listenerThread = new Thread(() -> {
             try {
                 reader = new BufferedReader(new InputStreamReader(serialPort.getInputStream()));
-                logger.info("Escuchando mensajes de Arduino...");
+                logger.info("Escuchando mensajes de Arduino");
 
                 while (listening && !Thread.interrupted()) {
                     if (reader.ready()) {

@@ -25,6 +25,7 @@ public class Navigator {
     private static Scene mainScene;
     private static Stack<Parent> history = new Stack<>();
     private static Object currentController;
+    private static PauseTransition ticketAutoCloseTimer;
 
     public static void init(Stage stage) {
         primaryStage = stage;
@@ -136,9 +137,9 @@ public class Navigator {
 
         navigateTo(view.getRoot());
 
-        PauseTransition delay = new PauseTransition(Duration.seconds(5));
-        delay.setOnFinished(evt -> navigateToIdentification());
-        delay.play();
+        ticketAutoCloseTimer = new PauseTransition(Duration.seconds(5));
+        ticketAutoCloseTimer.setOnFinished(evt -> navigateToIdentification());
+        ticketAutoCloseTimer.play();
     }
 
     private static void waitForTTSCleanup() {
@@ -181,6 +182,12 @@ public class Navigator {
 
     private static void cleanupCurrentController() {
         stopAllVoice();
+
+        if (ticketAutoCloseTimer != null) {
+            ticketAutoCloseTimer.stop();
+            ticketAutoCloseTimer = null;
+            logger.fine("Timer de cierre automático de ticket cancelado");
+        }
 
         if (currentController == null) {
             return;

@@ -202,24 +202,4 @@ public class DetectionService {
             return false;
         }
     }
-
-    public String testConnection() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\n═══════════════════════════════════════\n");
-        sb.append("🔌 TEST DE CONEXIÓN API ML\n");
-        sb.append("═══════════════════════════════════════\n");
-        sb.append(String.format("URL: %s\n", apiUrl));
-        sb.append(String.format("Timeout: %ds\n", client.connectTimeoutMillis() / 1000));
-        sb.append(String.format("Threshold: %.2f\n", defaultConfidenceThreshold));
-
-        try {
-            boolean available = isApiAvailable();
-            sb.append(String.format("Estado: %s\n", available ? " CONECTADO" : " DESCONECTADO"));
-        } catch (Exception e) {
-            sb.append(String.format("Estado:  ERROR - %s\n", e.getMessage()));
-        }
-
-        sb.append("═══════════════════════════════════════\n");
-        return sb.toString();
-    }
 }

@@ -11,6 +11,7 @@ import org.iclassq.service.AuthService;
 import org.iclassq.util.Constants;
 import org.iclassq.util.OnScreenKeyboard;
 import org.iclassq.view.LoginView;
+import org.iclassq.view.components.Message;
 
 import java.util.logging.Logger;
 
@@ -32,7 +33,10 @@ public class LoginController {
         String password = view.getPassword().getText();
 
         if (username.isEmpty() || password.isEmpty()) {
-            showError("Por favor ingrese usuario y contraseña");
+            Message.showError(
+                    "Error de Autenticación",
+                    "Por favor ingrese usuario y contraseña"
+            );
             return;
         }
 
@@ -55,7 +59,7 @@ public class LoginController {
                         new Thread(() -> {
                             try {
                                 logger.info("Iniciando inicialización de sistemas de accesibilidad...");
-                                AccessibilityInitializer.initializer();
+                                AccessibilityInitializer.initialize();
 
                                 logger.info("Inicialización completada exitosamente");
                                 Platform.runLater(() -> {
@@ -68,7 +72,10 @@ public class LoginController {
 
                                 Platform.runLater(() -> {
                                     view.hideLoading();
-                                    showError("Error al iniciar el sistema: " + e.getMessage());
+                                    Message.showError(
+                                            "Error al iniciar el sistema:",
+                                            e.getMessage()
+                                    );
                                     view.getBtnLogin().setDisable(false);
                                 });
                             }
@@ -76,24 +83,22 @@ public class LoginController {
                     } else {
                         logger.warning("Autenticación fallida: " + response.getMessage());
                         view.getBtnLogin().setDisable(false);
-                        showError(response.getMessage());
+                        Message.showError(
+                                "Error de autenticación:",
+                                response.getMessage()
+                        );
                     }
                 });
             } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() -> {
                     view.getBtnLogin().setDisable(false);
-                    showError("Error de conexión: " + e.getMessage());
+                    Message.showError(
+                            "Error de conexión:",
+                            e.getMessage()
+                    );
                 });
             }
         }, "AuthenticationThread").start();
-    }
-
-    private void showError(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error de Autenticación");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
     }
 }

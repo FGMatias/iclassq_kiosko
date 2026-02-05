@@ -119,7 +119,7 @@ public class AccessibilityDetectionService {
     }
 
     public CompletableFuture<DetectionResponse> detectAsync() {
-        logger.info("Iniciando detección completa (captura → API → respuesta)");
+        logger.info("Iniciando detección completa");
 
         return captureFramesAsync()
                 .thenCompose(this::sendToMLApiAsync)
@@ -144,7 +144,7 @@ public class AccessibilityDetectionService {
 
                         accessibilityManager.enableAccessibility();
 
-                        logger.info("Servicios de accesibilidad ACTIVADOS");
+                        logger.info("Servicios de accesibilidad activados");
                         return true;
 
                     } else {

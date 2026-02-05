@@ -90,8 +90,8 @@ public class ProximityDetectionServiceImpl implements ProximityDetectionService 
         }
 
         detecting = true;
-        logger.info("Iniciando detección por proximidad...");
-        logger.info("Esperando que alguien se acerque al sensor...");
+        logger.info("Iniciando detección por proximidad");
+        logger.info("Esperando que alguien se acerque al sensor");
 
         arduinoService.onDetectionComplete(() -> {
             logger.info("Persona detectada (5 segundos de presencia)");
@@ -113,10 +113,10 @@ public class ProximityDetectionServiceImpl implements ProximityDetectionService 
         return detectAsync()
                 .thenApply(detected -> {
                     if (detected) {
-                        logger.info("Presencia detectada → Activar accesibilidad");
+                        logger.info("Presencia detectada -> Activar accesibilidad");
                         return true;
                     } else {
-                        logger.info("No se detectó presencia → No activar accesibilidad");
+                        logger.info("No se detectó presencia -> No activar accesibilidad");
                         return false;
                     }
                 });

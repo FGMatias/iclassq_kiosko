@@ -26,18 +26,18 @@ public class BrailleService {
 
     public void enable() {
         this.enabled = true;
-        logger.info("🔲 Servicio Braille ACTIVADO (F12-F8)");
-        logger.info("   F12 (Verde)   → Grupo 1");
-        logger.info("   F11 (Azul)    → Grupo 2");
-        logger.info("   F10 (Amarillo)→ Grupo 3");
-        logger.info("   F9  (Rojo)    → Grupo 4");
-        logger.info("   F8  (Blanco)  → Grupo 5");
+        logger.info("Servicio Braille activado");
+        logger.info("   F12 (Verde) -> Grupo 1");
+        logger.info("   F11 (Azul) -> Grupo 2");
+        logger.info("   F10 (Amarillo) -> Grupo 3");
+        logger.info("   F9 (Rojo) -> Grupo 4");
+        logger.info("   F8 (Blanco) -> Grupo 5");
     }
 
     public void disable() {
         this.enabled = false;
         this.onButtonPressed = null;
-        logger.info("Servicio Braille DESACTIVADO");
+        logger.info("Servicio Braille desactivado");
     }
 
     public boolean isEnabled() {

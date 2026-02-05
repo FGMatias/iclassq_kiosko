@@ -91,8 +91,7 @@ public class VoiceAssistant {
 
         try {
             voiceManager.speak(message);
-            lastStopTimestamp = System.currentTimeMillis();
-            logger.info("TTS detenido");
+            logger.info("TTS hablando: " + message);
         } catch (Exception e) {
             logger.warning("Error al hablar: " + e.getMessage());
         }
@@ -103,6 +102,7 @@ public class VoiceAssistant {
 
         try {
             voiceManager.stopSpeaking();
+            lastStopTimestamp = System.currentTimeMillis();
             logger.info("TTS detenido");
         } catch (Exception e) {
             logger.warning("Error al detener TTS: " + e.getMessage());

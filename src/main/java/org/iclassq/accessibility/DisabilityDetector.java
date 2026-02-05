@@ -40,14 +40,11 @@ public class DisabilityDetector {
     }
 
     public boolean initialize() {
-        logger.info("═══════════════════════════════════════");
-        logger.info("INICIALIZANDO DISABILITY DETECTOR");
-        logger.info("═══════════════════════════════════════");
+        logger.info("Inicializando DisabilityDetector");
 
         logger.info("Verificando API ML...");
         if (!mlService.isApiAvailable()) {
-            logger.severe("API ML no está disponible. Verifique que Docker esté corriendo.");
-            logger.severe("   Comando: docker ps");
+            logger.severe("API ML no está disponible.");
             logger.severe("   URL: " + mlService.getApiUrl());
             return false;
         }
@@ -64,16 +61,14 @@ public class DisabilityDetector {
         initialized = true;
         detectionService.markAsReady();
 
-        logger.info("═══════════════════════════════════════");
-        logger.info("DISABILITY DETECTOR INICIALIZADO");
-        logger.info("═══════════════════════════════════════\n");
+        logger.info("Disability Detector inicializado");
 
         return true;
     }
 
     public DetectionResponse detect() {
         if (!initialized) {
-            logger.severe("DisabilityDetector no está inicializado. Llame a initialize() primero.");
+            logger.severe("DisabilityDetector no está inicializado.");
             return DetectionResponse.builder()
                     .success(false)
                     .error("Detector no inicializado")
@@ -148,25 +143,5 @@ public class DisabilityDetector {
 
     public AccessibilityManager getAccessibilityManager() {
         return accessibilityManager;
-    }
-
-    public String getDetectorInfo() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\n═══════════════════════════════════════\n");
-        sb.append("DISABILITY DETECTOR INFO\n");
-        sb.append("═══════════════════════════════════════\n");
-        sb.append(String.format("Estado: %s\n", initialized ? "Inicializado" : "No inicializado"));
-        sb.append(String.format("API ML: %s\n", mlService.getApiUrl()));
-        sb.append(String.format("Cámaras: %d activa(s)\n", cameraService.getInitializedCameraCount()));
-        sb.append(String.format("Accesibilidad: %s\n",
-                accessibilityManager.isAccessibilityEnabled() ? "Activa" : "Inactiva"));
-        sb.append(String.format("Servicio de Detección: %s\n",
-                detectionService.isReady() ? "Listo" : "No listo"));
-        sb.append("═══════════════════════════════════════\n");
-        return sb.toString();
-    }
-
-    public void printDetectorInfo() {
-        System.out.println(getDetectorInfo());
     }
 }

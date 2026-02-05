@@ -4,11 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-/**
- * Configuración para CameraService y CameraCapture
- *
- * VERSIÓN CORREGIDA: Incluye todos los métodos helper necesarios
- */
 @Getter
 @Setter
 @ToString
@@ -48,18 +43,6 @@ public class CameraConfig {
         config.setFramesPerCapture(2);
         config.setDelayBetweenFrames(200);
         config.setCameraInitTimeout(10);
-        return config;
-    }
-
-    public static CameraConfig getTestingConfig() {
-        CameraConfig config = new CameraConfig();
-        config.setMaxCameras(1);
-        config.setSpecificCameraIndices(new int[]{0});
-        config.setCaptureWidth(640);
-        config.setCaptureHeight(480);
-        config.setFramesPerCapture(1);
-        config.setDelayBetweenFrames(100);
-        config.setCameraInitTimeout(5);
         return config;
     }
 

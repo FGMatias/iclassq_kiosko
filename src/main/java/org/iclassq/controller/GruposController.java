@@ -207,19 +207,11 @@ public class GruposController {
                 SessionData session = SessionData.getInstance();
                 Integer sucursalId = session.getSucursalId();
                 Integer grupoId = grupo.getId();
-
-                logger.info(String.format("Obteniendo subgrupo preferencial para grupo: %s (ID: %d)",
-                        grupo.getNombre(), grupoId));
-
                 SubGrupoDTO subgrupoPreferencial = subGrupoService.getPreferencial(sucursalId, grupoId);
 
                 if (subgrupoPreferencial == null) {
                     throw new Exception("No se encontró subgrupo preferencial para el grupo " + grupo.getNombre());
                 }
-
-                logger.info(String.format("Subgrupo preferencial obtenido: %s (ID: %d)",
-                        subgrupoPreferencial.getVNombreSubGrupo(),
-                        subgrupoPreferencial.getISubGrupo()));
 
                 TicketRequestDTO request = buildTicketRequest(subgrupoPreferencial);
 

@@ -7,7 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum AccessibilityMode {
     NORMAL("Modo Normal", "Usuario sin discapacidad"),
-    ACCESSIBLE("Modo Accesible", "Usuario con discapacidad - Servicios activos");
+    ACCESSIBLE("Modo Accesible", "Usuario con discapacidad");
 
     private final String name;
     private final String description;

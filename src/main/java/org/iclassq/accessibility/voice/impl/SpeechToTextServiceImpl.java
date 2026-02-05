@@ -140,7 +140,7 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
             boolean wasListening = listening.get();
 
             if (wasListening) {
-                logger.info("Deteniendo escucha para limpiar gramática...");
+                logger.info("Deteniendo escucha para limpiar gramática");
                 stopListening();
                 Thread.sleep(200);
             }
@@ -154,7 +154,7 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
             logger.info("Gramática eliminada - reconocimiento general activado");
 
             if (wasListening) {
-                logger.info("Reiniciando escucha sin gramática...");
+                logger.info("Reiniciando escucha sin gramática");
                 startListening();
             }
 
@@ -378,7 +378,7 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
         AudioFormat format = new AudioFormat(16000, 16, 1, true, false);
         DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
 
-        logger.info("=== BUSCANDO MICRÓFONOS ===");
+        logger.info("Buscando microfonos");
         Mixer.Info[] mixerInfos = AudioSystem.getMixerInfo();
         for (Mixer.Info mixerInfo : mixerInfos) {
             logger.info("  - " + mixerInfo.getName());

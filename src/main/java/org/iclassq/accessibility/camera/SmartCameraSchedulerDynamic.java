@@ -37,21 +37,9 @@ public class SmartCameraSchedulerDynamic {
             return;
         }
 
-        logger.info("═══════════════════════════════════════════");
-        logger.info("  SMART CAMERA SCHEDULER - DINÁMICO");
-        logger.info("═══════════════════════════════════════════");
-
         schedulerRunning = true;
 
         loadHorarios();
-
-        logger.info(String.format("  Horario actual: %s - %s",
-                activeStartTime, activeEndTime));
-        logger.info("  Fuente: Base de datos (tbl_grupo)");
-        logger.info("  Verificación estado: Cada hora");
-        logger.info("  Actualización horarios: Cada 6 horas");
-        logger.info("═══════════════════════════════════════════");
-
         checkAndAdjustCameraState();
 
         scheduler.scheduleAtFixedRate(
@@ -92,13 +80,11 @@ public class SmartCameraSchedulerDynamic {
             LocalTime newEndTime = horarios.getHoraFinAsLocalTime();
 
             if (!newStartTime.equals(activeStartTime) || !newEndTime.equals(activeEndTime)) {
-                logger.info("═══════════════════════════════════════════");
-                logger.info("HORARIOS ACTUALIZADOS DESDE BD");
+                logger.info("Horarios actualizados desde base de datos");
                 logger.info(String.format("   Anterior: %s - %s",
                         activeStartTime, activeEndTime));
                 logger.info(String.format("   Nuevo:    %s - %s",
                         newStartTime, newEndTime));
-                logger.info("═══════════════════════════════════════════");
 
                 activeStartTime = newStartTime;
                 activeEndTime = newEndTime;
@@ -148,12 +134,10 @@ public class SmartCameraSchedulerDynamic {
     }
 
     private void activateCamera(LocalTime currentTime) {
-        logger.info("═══════════════════════════════════════════");
-        logger.info("ACTIVANDO CÁMARA - Horario Activo");
+        logger.info("Activando camara - Horario Activo");
         logger.info(String.format("   Hora actual: %s", currentTime));
         logger.info(String.format("   Horario desde BD: %s - %s",
                 activeStartTime, activeEndTime));
-        logger.info("═══════════════════════════════════════════");
 
         try {
             DisabilityDetector detector = new DisabilityDetector();
@@ -178,11 +162,9 @@ public class SmartCameraSchedulerDynamic {
     }
 
     private void deactivateCamera(LocalTime currentTime) {
-        logger.info("═══════════════════════════════════════════");
-        logger.info("DESACTIVANDO CÁMARA - Horario Inactivo");
+        logger.info("Desactivando camara - Horario Inactivo");
         logger.info(String.format("   Hora actual: %s", currentTime));
         logger.info("   Razón: Fuera del horario de atención");
-        logger.info("═══════════════════════════════════════════");
 
         try {
             DisabilityDetector detector = KioskoApplication.getDisabilityDetector();
@@ -208,31 +190,6 @@ public class SmartCameraSchedulerDynamic {
     public void reloadHorarios() {
         logger.info("Recarga manual de horarios solicitada");
         loadHorarios();
-    }
-
-    public String getHorariosActuales() {
-        return String.format("%s - %s", activeStartTime, activeEndTime);
-    }
-
-    public void printStatus() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalTime currentTime = now.toLocalTime();
-
-        logger.info("═══════════════════════════════════════════");
-        logger.info("  SMART CAMERA SCHEDULER - STATUS");
-        logger.info("═══════════════════════════════════════════");
-        logger.info(String.format("  Fecha/Hora: %s %s",
-                now.getDayOfWeek(), currentTime));
-        logger.info(String.format("  Horario desde BD: %s - %s",
-                activeStartTime, activeEndTime));
-        logger.info(String.format("  Estado actual: %s",
-                cameraActive ? "ACTIVA" : "INACTIVA"));
-        logger.info(String.format("  Debe estar activa: %s",
-                isActiveTime(currentTime, now.getDayOfWeek()) ? "SÍ" : "NO"));
-        logger.info(String.format("  Scheduler corriendo: %s",
-                schedulerRunning ? "SÍ" : "NO"));
-        logger.info("  Fuente horarios: Base de datos (tbl_grupo)");
-        logger.info("═══════════════════════════════════════════");
     }
 
     public void shutdown() {
