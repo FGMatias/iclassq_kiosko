@@ -42,6 +42,7 @@ public class KioskoApplication extends Application {
         Application.setUserAgentStylesheet(new CupertinoLight().getUserAgentStylesheet());
 
         ServiceFactory.init(AppConfig.getBackendUrl());
+//        ServiceFactory.init(AppConfig.getDetectionUrl());
 
         initializeVoiceServices();
 

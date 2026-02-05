@@ -22,4 +22,8 @@ public class AppConfig {
     public static String getBackendUrl() {
         return properties.getProperty("app.backend.url", "http://localhost:8080/iclassq");
     }
+
+    public static String getDetectionUrl() {
+        return properties.getProperty("app.detection.url", "http://localhost:5000/verify-images");
+    }
 }
