@@ -20,6 +20,9 @@ import org.iclassq.util.Constants;
 import org.iclassq.util.Fonts;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -42,8 +45,8 @@ public class KioskoApplication extends Application {
         Application.setUserAgentStylesheet(new CupertinoLight().getUserAgentStylesheet());
 
         ServiceFactory.init(AppConfig.getBackendUrl());
-//        ServiceFactory.init(AppConfig.getDetectionUrl());
 
+        ensureLogsDirectory();
         initializeVoiceServices();
 
         Navigator.init(stage);
@@ -64,6 +67,25 @@ public class KioskoApplication extends Application {
         });
 
         stage.show();
+    }
+
+    private void ensureLogsDirectory() {
+        try {
+            String userHome = System.getProperty("user.home");
+            Path logsDir = Paths.get(userHome, ".iclassq", "logs");
+
+            if (!Files.exists(logsDir)) {
+                Files.createDirectories(logsDir);
+                logger.info("Directorio de logs creado en: " + logsDir.toAbsolutePath());
+            }
+
+            System.setProperty("iclassq.logs.dir", logsDir.toAbsolutePath().toString());
+
+            logger.info("Logs configurados en: " + logsDir.toAbsolutePath());
+
+        } catch (Exception e) {
+            logger.severe("ADVERTENCIA: No se pudo crear directorio de logs: " + e.getMessage());
+        }
     }
 
     private void setupGlobalAdminGesture(Scene scene) {

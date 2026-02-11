@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import okhttp3.*;
+import org.iclassq.config.AppConfig;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -44,7 +45,7 @@ public class DetectionService {
     }
 
     public DetectionService() {
-        this("http://localhost:5000/verify-images", 15, 0.5);
+        this(AppConfig.getDetectionUrl(), 15, 0.5);
     }
 
     public DetectionResponse detect(List<BufferedImage> images) {

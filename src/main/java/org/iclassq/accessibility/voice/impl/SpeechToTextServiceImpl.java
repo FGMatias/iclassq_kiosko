@@ -457,6 +457,11 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
             return workingModel.getAbsolutePath();
         }
 
+        File appModel = new File("app/" + MODEL_PATH);
+        if (appModel.exists() && appModel.isDirectory()) {
+            return appModel.getAbsolutePath();
+        }
+
         throw new IOException("Modelo Vosk no encontrado.");
     }
 
