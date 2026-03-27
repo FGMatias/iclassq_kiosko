@@ -26,8 +26,8 @@ public class IdentificationController {
 
     private final Map<String, Integer> documentTypesMap = new HashMap<>();
 
-    private DisabilityDetectionAdapter detectionAdapter;
-    private final ProximityDetectionAdapter proximityAdapter;
+//    private DisabilityDetectionAdapter detectionAdapter;
+//    private final ProximityDetectionAdapter proximityAdapter;
     private final IdentificationVoiceAdapter voiceAdapter;
 
     private boolean isInitialLoad = true;
@@ -42,59 +42,59 @@ public class IdentificationController {
         view.setOnDeleteAll(this::handleDeleteAll);
 
         this.voiceAdapter = new IdentificationVoiceAdapter();
-        this.proximityAdapter = ProximityDetectionAdapter.getInstance();
+//        this.proximityAdapter = ProximityDetectionAdapter.getInstance();
 
-        setupProximityDetection();
+//        setupProximityDetection();
         loadDocumentTypes();
-        initializeProximityDetection();
+//        initializeProximityDetection();
     }
 
-    private void setupProximityDetection() {
-        if (proximityAdapter == null) {
-            logger.warning("ProximityDetectionAdapter no disponible - continuando sin detección");
-            return;
-        }
+//    private void setupProximityDetection() {
+//        if (proximityAdapter == null) {
+//            logger.warning("ProximityDetectionAdapter no disponible - continuando sin detección");
+//            return;
+//        }
+//
+//        proximityAdapter.onDetectionCompleted(proximityDetected -> {
+//            if (proximityDetected) {
+//                logger.info("Presencia confirmada por Arduino - iniciando detección por cámara");
+//                this.detectionAdapter = new DisabilityDetectionAdapter();
+//            } else {
+//                logger.info("Usuario se retiró antes de completar detección - modo normal");
+//                AccessibilityManager.getInstance().disableAccessibility();
+//            }
+//        });
+//    }
 
-        proximityAdapter.onDetectionCompleted(proximityDetected -> {
-            if (proximityDetected) {
-                logger.info("Presencia confirmada por Arduino - iniciando detección por cámara");
-                this.detectionAdapter = new DisabilityDetectionAdapter();
-            } else {
-                logger.info("Usuario se retiró antes de completar detección - modo normal");
-                AccessibilityManager.getInstance().disableAccessibility();
-            }
-        });
-    }
-
-    private void initializeProximityDetection() {
-        if (proximityAdapter == null) {
-            logger.warning("No se puede iniciar detección - adaptador no disponible");
-            return;
-        }
-
-        logger.info("Preparando inicio de detección de proximidad");
-
-        new Thread(() -> {
-            try {
-                Thread.sleep(500);
-                Platform.runLater(() -> {
-                    logger.info("Iniciando detección de proximidad");
-                    proximityAdapter.start();
-                });
-            } catch (InterruptedException e) {
-                logger.warning("Inicialización de proximidad interrumpida");
-                Thread.currentThread().interrupt();
-            }
-        }, "ProximityInitThread").start();
-    }
+//    private void initializeProximityDetection() {
+//        if (proximityAdapter == null) {
+//            logger.warning("No se puede iniciar detección - adaptador no disponible");
+//            return;
+//        }
+//
+//        logger.info("Preparando inicio de detección de proximidad");
+//
+//        new Thread(() -> {
+//            try {
+//                Thread.sleep(500);
+//                Platform.runLater(() -> {
+//                    logger.info("Iniciando detección de proximidad");
+//                    proximityAdapter.start();
+//                });
+//            } catch (InterruptedException e) {
+//                logger.warning("Inicialización de proximidad interrumpida");
+//                Thread.currentThread().interrupt();
+//            }
+//        }, "ProximityInitThread").start();
+//    }
 
     public void cleanup() {
         logger.info("Limpiando recursos de IdentificationController");
 
-        if (proximityAdapter != null) {
-            proximityAdapter.stop();
-            logger.info("   ProximityDetectionAdapter detenido");
-        }
+//        if (proximityAdapter != null) {
+//            proximityAdapter.stop();
+//            logger.info("   ProximityDetectionAdapter detenido");
+//        }
 
         voiceAdapter.cleanup();
         logger.info("   VoiceAdapter limpiado");
@@ -102,16 +102,16 @@ public class IdentificationController {
         logger.info("Recursos limpiados correctamente");
     }
 
-    public void resetProximityDetection() {
-        if (proximityAdapter == null) {
-            logger.warning("No se puede resetear proximidad - adaptador no disponible");
-            return;
-        }
-
-        logger.info("Reseteando detección de proximidad para nueva sesión");
-        proximityAdapter.reset();
-        initializeProximityDetection();
-    }
+//    public void resetProximityDetection() {
+//        if (proximityAdapter == null) {
+//            logger.warning("No se puede resetear proximidad - adaptador no disponible");
+//            return;
+//        }
+//
+//        logger.info("Reseteando detección de proximidad para nueva sesión");
+//        proximityAdapter.reset();
+//        initializeProximityDetection();
+//    }
 
     private void loadDocumentTypes() {
         new Thread(() -> {

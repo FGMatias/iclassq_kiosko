@@ -19,6 +19,7 @@ import org.iclassq.navigation.Navigator;
 import org.iclassq.util.Constants;
 import org.iclassq.util.Fonts;
 
+import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,6 +40,16 @@ public class KioskoApplication extends Application {
     private static final long TAP_TIMEOUT_MS = 3000;
     private static final double ADMIN_ZONE_SIZE = 100.0;
 
+    static {
+        try {
+            String userHome = System.getProperty("user.home");
+            Path logsDir = Paths.get(userHome, ".iclassq", "logs");
+            Files.createDirectories(logsDir);
+        } catch (Exception e) {
+            System.err.println("No se pudo crear directorio de logs: " + e.getMessage());
+        }
+    }
+
     @Override
     public void start(Stage stage) throws Exception {
         Fonts.loadFonts();
@@ -46,7 +57,6 @@ public class KioskoApplication extends Application {
 
         ServiceFactory.init(AppConfig.getBackendUrl());
 
-        ensureLogsDirectory();
         initializeVoiceServices();
 
         Navigator.init(stage);
@@ -67,25 +77,6 @@ public class KioskoApplication extends Application {
         });
 
         stage.show();
-    }
-
-    private void ensureLogsDirectory() {
-        try {
-            String userHome = System.getProperty("user.home");
-            Path logsDir = Paths.get(userHome, ".iclassq", "logs");
-
-            if (!Files.exists(logsDir)) {
-                Files.createDirectories(logsDir);
-                logger.info("Directorio de logs creado en: " + logsDir.toAbsolutePath());
-            }
-
-            System.setProperty("iclassq.logs.dir", logsDir.toAbsolutePath().toString());
-
-            logger.info("Logs configurados en: " + logsDir.toAbsolutePath());
-
-        } catch (Exception e) {
-            logger.severe("ADVERTENCIA: No se pudo crear directorio de logs: " + e.getMessage());
-        }
     }
 
     private void setupGlobalAdminGesture(Scene scene) {
@@ -111,7 +102,7 @@ public class KioskoApplication extends Application {
             logger.fine(String.format("Admin tap detectado: %d/%d", globalTapCount, REQUIRED_TAPS));
 
             if (globalTapCount >= REQUIRED_TAPS) {
-                globalTapCount = 0; // Reset
+                globalTapCount = 0;
                 Platform.runLater(this::showGlobalShutdownDialog);
             }
         });

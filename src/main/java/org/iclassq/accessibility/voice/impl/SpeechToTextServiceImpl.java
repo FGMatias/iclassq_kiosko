@@ -444,7 +444,7 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
                 }
             }
         } catch (Exception e) {
-            logger.warning("No se pudo cargar modelo desde resources: " + e.getMessage());
+            logger.warning("No desde resources: " + e.getMessage());
         }
 
         File localModel = new File("src/main/resources/" + MODEL_PATH);
@@ -457,9 +457,27 @@ public class SpeechToTextServiceImpl implements SpeechToTextService {
             return workingModel.getAbsolutePath();
         }
 
-        File appModel = new File("app/" + MODEL_PATH);
-        if (appModel.exists() && appModel.isDirectory()) {
-            return appModel.getAbsolutePath();
+        try {
+            String jarPath = getClass()
+                    .getProtectionDomain()
+                    .getCodeSource()
+                    .getLocation()
+                    .toURI()
+                    .getPath();
+
+            if (jarPath.startsWith("/") && jarPath.contains(":")) {
+                jarPath = jarPath.substring(1);
+            }
+
+            File jarDir = new File(jarPath).getParentFile();
+            if (jarDir != null) {
+                File modelInJarDir = new File(jarDir, MODEL_PATH);
+                if (modelInJarDir.exists() && modelInJarDir.isDirectory()) {
+                    return modelInJarDir.getAbsolutePath();
+                }
+            }
+        } catch (Exception e) {
+            logger.warning("No junto al JAR: " + e.getMessage());
         }
 
         throw new IOException("Modelo Vosk no encontrado.");
